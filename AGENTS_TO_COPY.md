@@ -22,7 +22,8 @@ When issue flow matters, read in this order:
 2. `.local/AGENTS.md` when present
 3. the repo's `AGENTS.md`
 4. `AGENTS_ISSUE_FLOW.md` when referenced as an extra flow file
-5. `docs/specs/` and then the latest 3 files from `docs/meetings/`
+5. `docs/specs/` and then the latest 3 files from `docs/meetings/` when those
+   paths exist
 6. the codebase and current diff
 
 `.local/context.md` is memory, not durable truth.
@@ -55,8 +56,8 @@ Before changing anything:
    possible
 4. read `.local/AGENTS.md`, `.local/context.md`, and the relevant issue file
    when they exist
-5. read committed specs and at most the latest 3 meeting files when `docs/`
-   exists
+5. read committed specs and at most the latest 3 meeting files when those
+   paths exist
 6. inspect the diff and current repository patterns
 
 If `.local/` does not exist and the human did not ask for it, do not bootstrap
@@ -101,7 +102,9 @@ source of truth.
 - `docs/` is optional and committed
 - `docs/specs/` holds durable expectations
 - `docs/meetings/` holds chronological context
+- workflows such as `SPEC_SYNC` apply only when those durable docs exist
 - never rewrite meeting files
+- do not guess missing spec sources
 - do not create `docs/` unless a human asks for it
 
 ## Working Rules

@@ -183,8 +183,12 @@ To keep it private, add this to `.git/info/exclude` or your repo ignore rules:
 - `docs/specs/`: durable behavior and expectations
 - `docs/meetings/`: chronological context
 
-Agent rule: read specs, then at most the latest 3 meeting files. Never rewrite
-meeting files.
+Agent rule: read specs when `docs/specs/` exists, then at most the latest 3
+meeting files when `docs/meetings/` exists. Never rewrite meeting files.
+
+`SPEC_SYNC` is an optional example workflow for repos that keep durable
+expectations in `docs/specs/`. If those durable docs do not exist, the skill is
+not applicable and should not create `docs/` or guess missing spec sources.
 
 ## Optional Local File Starters
 
