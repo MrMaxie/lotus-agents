@@ -1,12 +1,15 @@
 # SKILL: PR_NOTES
 
+Optional skill. It can live in the repo or be installed globally on the
+machine.
+
 ## PURPOSE
 
 Official optional extension for user-facing change summaries.
 
 ## OUTPUT FILE
 
-`<pr_notes_dir>/<id>.md` when local execution memory is in use
+`.local/pr-notes/<id>.md` when local execution memory is in use
 
 ## RULES
 
@@ -33,7 +36,7 @@ If the file exists:
   - video sections
   - unknown sections
 - do not fill a section if you are unsure
-- use the PR notes template when bootstrapping a new file
+- use a private template from `.local/templates/` when bootstrapping a new file
 
 ## STYLE
 

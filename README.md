@@ -1,120 +1,229 @@
 # Lotus Agents
 
-Lotus Agents is a portable runtime contract for human-agent collaboration. It
-is meant to make agent work deterministic across resumes, clearer to audit, and
-less dependent on a single prompt.
+Small copy-paste issue flow for human-agent work.
 
-The contract is intentionally narrow. It answers four questions:
+- `.local/` holds private execution state
+- `docs/` is optional and committed when the repo wants durable shared docs
+- `AGENTS.md` in this repo explains the project to agents working here
+- `AGENTS_TO_COPY.md` is the flow artifact you copy into consumer repos
+- no setup scripts
+- no path config
+- no required skills inside the repo
 
-1. what the agent reads
-2. what counts as source of truth
-3. where local execution state belongs
-4. when the agent must avoid creating new structure
+## Why This Exists
 
-Normative rules live in `AGENTS.md`. This file explains the system to humans.
+Most agent setups fail in the same boring ways:
 
-## What Lives In This Repository
+- the agent guesses what to read
+- scratch notes leak into durable project truth
+- every repo invents a different place for issue notes and review notes
+- onboarding starts with tooling instead of a simple copy-paste flow
 
-- `AGENTS.md` - canonical runtime contract
-- `START_HERE.md` - consumer-repo entry point
-- `REFERENCE.md` - consolidated secondary reference
-- `INTEGRATION.md` - adoption and bootstrap guidance
-- `RATIONALE.md` - why the system exists and what it refuses to decide
-- `skills/` - focused workflow modules
-- `templates/` - starter files for shared and local artifacts
-- `scripts/` - bootstrap and validation helpers
-- `examples/` - adoption shapes and a reference run
-- `lotus.config.yaml.example` - path override example
-- `lotus.config.schema.json` - machine-readable config schema
+Lotus Agents narrows that down to one convention.
 
-Compatibility entrypoints remain in `OVERVIEW.md`, `ARTIFACT_MATRIX.md`, and
-`CONTRACT_CHECKLIST.md`, but `REFERENCE.md` is the canonical secondary
-reference.
+## What Lives In This Repo
 
-## Core Model
+- `AGENTS.md`: repo-specific instructions for agents working on Lotus Agents
+- `AGENTS_TO_COPY.md`: the file meant for copy/merge/reference in other repos
+- `skills/`: optional example skills
+- `examples/`: adoption examples and a fuller reference run
 
-Lotus Agents separates three knowledge layers:
+## Core Shape In A Consumer Repo
 
-- committed runtime rules in `AGENTS.md`
-- durable project knowledge in the active docs source
-- local execution memory under the configured local root
+```text
+repo/
+  AGENTS.md
+  AGENTS_ISSUE_FLOW.md        # optional if AGENTS already exists
+  docs/                       # optional, committed
+    specs/
+    meetings/
+  .local/                     # private, local, usually ignored
+    AGENTS.md                 # optional machine-local overrides
+    context.md
+    templates/
+    issues/
+    issues-notes/
+    questions/
+    runs/
+    reviews/
+    pr-notes/
+```
 
-The execution loop is always:
+Rules of thumb:
 
-1. ARRANGE
-2. ACT
-3. ASSERT
+- create only the `.local/` subdirectories you actually use
+- keep durable shared knowledge in `docs/`
+- keep operational scratch state in `.local/`
+- do not introduce alternate folder layouts just to "configure" names
 
-## Design Intent
+## Three Adoption Paths
 
-Lotus Agents is designed to make agent work:
+### 1. Repo Has No `AGENTS.md`
 
-- deterministic about what it reads before it changes anything
-- explicit about what outranks what
-- resumable without inventing durable structure on the fly
-- portable across repositories with different layouts and maturity levels
-- auditable by both humans and agents
+Use `AGENTS_TO_COPY.md` as the base.
 
-## Non-Goals
+1. Copy `AGENTS_TO_COPY.md` into the target repo.
+2. Rename it to `AGENTS.md`.
+3. Create `.local/` and the subdirectories you need.
+4. Add `docs/` only if you want committed specs or meetings.
 
-Lotus Agents does not try to be:
+Minimal shape:
 
-- a process framework
-- an issue tracker
-- a review tool
-- a documentation system for every repository
-- a mandate that every repository must have local execution memory
+```text
+repo/
+  AGENTS.md
+  .local/
+    context.md
+    templates/
+    issues/
+    issues-notes/
+```
 
-## When The Contract Is Silent
+### 2. Repo Already Has `AGENTS.md` And You Can Edit It
 
-When the contract does not prescribe a single action, the agent should:
+Keep the existing file and merge in the parts you want from
+`AGENTS_TO_COPY.md`.
 
-- prefer the smallest coherent change
-- avoid guessing identifiers or intent
-- ask a question when ambiguity blocks the work
-- otherwise continue with an explicit assumption recorded in notes or a run log
-- avoid creating new durable structure without explicit human intent
+Usually that means copying only:
 
-## Audiences
+- read order and source-of-truth rules
+- `.local/` conventions
+- issue and review artifact naming
+- docs rules
 
-- `AGENTS.md` is for agents and any human validating the runtime contract
-- `START_HERE.md` is for humans integrating Lotus Agents into another repository
-- `REFERENCE.md` is for humans and agents who need a compact shared reference
-- `RATIONALE.md` is for maintainers deciding whether the system is the right fit
+### 3. Repo Already Has `AGENTS.md` And You Want Small Changes
 
-## Adopting It In Another Repository
+Keep the existing `AGENTS.md`, copy `AGENTS_TO_COPY.md` into the repo as
+`AGENTS_ISSUE_FLOW.md`, and add a short reference section.
 
-The promoted adoption model is `Copy Pack`.
+Paste this into the existing `AGENTS.md`:
 
-Use `scripts/init.ps1` or `scripts/init.sh` from this repository to copy the
-starter pack into a target repository, or copy the pack manually. The target
-repository keeps its own `README.md`; Lotus Agents should not replace it.
+```md
+## Additional Issue Flow
 
-The recommended starter pack is:
+This repository also uses the workflow rules in `AGENTS_ISSUE_FLOW.md`.
 
-1. `AGENTS.md`
-2. `START_HERE.md`
-3. `REFERENCE.md`
-4. `skills/`
-5. `templates/`
-6. `lotus.config.yaml.example`
-7. `lotus.config.schema.json`
-8. optional `scripts/validate-contract.ps1`
-9. optional `scripts/validate-contract.sh`
+When work touches planning, `.local/` artifacts, issue notes, review notes,
+questions, or resume flow, read and follow `AGENTS_ISSUE_FLOW.md` together with
+this file.
 
-Then choose one of three adoption modes:
+If the files conflict, this `AGENTS.md` wins unless it explicitly says
+otherwise.
+```
 
-- minimal repository with no docs and no local memory
-- repository with local execution memory under the configured local root
-- repository with custom paths resolved through `lotus.config.yaml`
+## What Goes In `.local/`
 
-See `START_HERE.md` for the short path, `INTEGRATION.md` for more detail, and
-`examples/` for concrete shapes.
+`.local/` is the main entrypoint of the idea. It is where private execution
+state belongs.
 
-## About This Repository
+- `.local/AGENTS.md`: machine-local overrides only
+- `.local/context.md`: resume hints and local context
+- `.local/templates/`: private helper snippets
+- `.local/issues/`: issue inputs
+- `.local/issues-notes/`: working notes and decisions
+- `.local/questions/`: unanswered human questions
+- `.local/runs/`: non-issue run logs
+- `.local/reviews/`: review artifacts
+- `.local/pr-notes/`: user-facing change summary drafts
 
-This repository defines Lotus Agents itself. It now includes bootstrap and
-validation material intended to make reuse less ambiguous. It is still not
-using the full runtime contract against itself as a consuming repository. That
-self-hosted reference can happen later once the cleanup is stable enough to
-reuse without caveats.
+If a repo does not have `.local/` yet, do not invent it by surprise. Create it
+when the human wants the flow.
+
+To keep it private, add this to `.git/info/exclude` or your repo ignore rules:
+
+```gitignore
+.local/
+```
+
+## What Goes In `docs/`
+
+`docs/` is optional. Use it only for committed, shared truth.
+
+- `docs/specs/`: durable behavior and expectations
+- `docs/meetings/`: chronological context
+
+Agent rule: read specs, then at most the latest 3 meeting files. Never rewrite
+meeting files.
+
+## Tiny Snippets
+
+Private template example for `.local/templates/issue-notes.md`:
+
+```md
+# Issue Notes - <issue-id>
+
+## Goal
+...
+
+## Progress
+- ...
+
+## Decisions
+- ...
+
+## Resume Point
+...
+```
+
+Private template example for `.local/templates/questions.md`:
+
+```md
+# Questions - q<id>
+
+## q1
+
+### Question
+...
+
+### Answer
+...
+```
+
+## Skills
+
+Skills are optional.
+
+- they can live in the repo
+- they can be installed on the machine instead
+- the flow should still make sense without them
+
+This repo keeps a few example skills, but they are not part of the required
+copy pack.
+
+### Install A Skill In Codex
+
+Codex looks for skills under `$CODEX_HOME/skills/<skill-name>/SKILL.md`.
+
+PowerShell example:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:CODEX_HOME\\skills\\questions" | Out-Null
+Copy-Item ".\\skills\\QUESTIONS.md" "$env:CODEX_HOME\\skills\\questions\\SKILL.md"
+```
+
+Bash example:
+
+```bash
+mkdir -p "$CODEX_HOME/skills/questions"
+cp ./skills/QUESTIONS.md "$CODEX_HOME/skills/questions/SKILL.md"
+```
+
+Repeat the same pattern for any other skill file:
+
+- choose a folder name under `$CODEX_HOME/skills/`
+- copy the chosen file there as `SKILL.md`
+
+## What To Copy From This Repo
+
+Usually one of these:
+
+- `AGENTS_TO_COPY.md`
+- selected sections merged into an existing `AGENTS.md`
+- optional skill files if you want repo-local skills
+
+You do not need setup scripts, config files, or a large starter pack.
+
+## Examples
+
+- [consumer-repo](examples/consumer-repo/README.md): three adoption styles
+- [reference-run](examples/reference-run/README.md): one fuller `.local`-first run

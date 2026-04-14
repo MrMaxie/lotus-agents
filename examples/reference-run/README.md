@@ -1,33 +1,35 @@
 # Reference Run
 
-This example shows one default-layout consumer repository with:
+This example shows a fuller `.local`-first consumer repository with:
 
-- committed docs
-- local execution memory
+- private execution memory under `.local/`
+- private helper snippets under `.local/templates/`
+- optional committed docs under `docs/`
 - one general run
 - one issue-based run
 - one review-based revision
 
 Key points:
 
-- `docs/` is the active docs source because committed docs exist
-- `.local/` contains execution memory and local overrides only
+- `.local/` is the operational workspace
+- `docs/` exists here because this repo wants committed specs and meetings
 - the meetings directory intentionally contains four files so the latest three
   are the active chronological context
-- review artifacts use the same canonical shape as the templates and skills
+- review artifacts and PR notes remain optional extensions
 
 ```text
 examples/reference-run/
-  docs/
-    specs/
-    meetings/
   .local/
     AGENTS.md
     context.md
+    templates/
     issues/
     issues-notes/
     questions/
     runs/
     reviews/
     pr-notes/
+  docs/
+    specs/
+    meetings/
 ```

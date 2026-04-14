@@ -1,10 +1,10 @@
 # Consumer Repo Examples
 
-These examples show three common Lotus Agents adoption shapes:
+These examples show the three recommended adoption styles:
 
-- [01-minimal](01-minimal/README.md)
-- [02-with-local](02-with-local/README.md)
-- [03-custom-layout](03-custom-layout/README.md)
+- [01-no-agents-yet](01-no-agents-yet/README.md)
+- [02-merge-into-existing-agents](02-merge-into-existing-agents/README.md)
+- [03-reference-copy-file](03-reference-copy-file/README.md)
 
-For one end-to-end artifact example, see
+For a fuller `.local`-first run with docs and local artifacts, see
 [../reference-run](../reference-run/README.md).

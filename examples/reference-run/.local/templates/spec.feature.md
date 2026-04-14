@@ -14,6 +14,3 @@
 
 ## Technical Notes
 ...
-
-## Deprecated
-...

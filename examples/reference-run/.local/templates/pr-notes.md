@@ -11,9 +11,3 @@
 
 ## Risks and Follow-Ups
 - ...
-
-## Screenshots
-- ...
-
-## Video
-- ...

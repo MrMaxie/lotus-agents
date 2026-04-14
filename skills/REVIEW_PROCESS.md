@@ -1,5 +1,8 @@
 # SKILL: REVIEW_PROCESS
 
+Optional skill. It can live in the repo or be installed globally on the
+machine.
+
 ## PURPOSE
 
 Official optional extension for review-based work.
@@ -12,10 +15,10 @@ Official optional extension for review-based work.
 
 When local execution memory is in use:
 
-1. `<reviews_dir>/<revision-id>.md`
-2. `<reviews_dir>/<revision-id>-answers.md`
-3. `<issues_dir>/<revision-id>.md`
-4. `<issue_notes_dir>/<revision-id>.md`
+1. `.local/reviews/<revision-id>.md`
+2. `.local/reviews/<revision-id>-answers.md`
+3. `.local/issues/<revision-id>.md`
+4. `.local/issues-notes/<revision-id>.md`
 
 `revision-id` means `<issue-id>-r001`, `<issue-id>-r002`, and so on.
 

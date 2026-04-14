@@ -1,9 +1,12 @@
 # SKILL: SPEC_SYNC
 
+Optional skill. It can live in the repo or be installed globally on the
+machine.
+
 ## INPUT
 
-- active specs
-- last 3 meetings
+- `docs/specs/`
+- the last 3 files from `docs/meetings/`
 - codebase
 - issue notes or run log when present
 

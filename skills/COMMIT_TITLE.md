@@ -1,5 +1,8 @@
 # SKILL: COMMIT_TITLE
 
+Optional skill. It can live in the repo or be installed globally on the
+machine.
+
 ## INPUT
 - diff
 - issue

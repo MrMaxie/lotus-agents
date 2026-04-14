@@ -1,5 +1,8 @@
 # SKILL: QUESTIONS
 
+Optional skill. It can live in the repo or be installed globally on the
+machine.
+
 ## PURPOSE
 
 Maintain the human clarification loop for issue-based work, review-based work,
@@ -7,10 +10,10 @@ and general runs.
 
 ## FILES
 
-- `<questions_dir>/q<issue-id>.md`
-- `<questions_dir>/q<revision-id>.md`
-- `<questions_dir>/q001.md`
-- `<questions_dir>/q002.md`
+- `.local/questions/q<issue-id>.md`
+- `.local/questions/q<revision-id>.md`
+- `.local/questions/q001.md`
+- `.local/questions/q002.md`
 
 ## RULES
 
