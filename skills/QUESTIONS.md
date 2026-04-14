@@ -15,6 +15,9 @@ and general runs.
 - `.local/questions/q001.md`
 - `.local/questions/q002.md`
 
+`q<revision-id>.md` matches the main local artifact contract when review-based
+work creates a revision id such as `<issue-id>-r001`.
+
 ## RULES
 
 - use `q<issue-id>.md` when the work is tied to an existing issue id

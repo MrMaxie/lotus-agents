@@ -7,6 +7,9 @@ machine.
 
 Official optional extension for review-based work.
 
+When local execution memory is in use, this skill follows the main local
+artifact contract for review revisions.
+
 ## INPUT
 
 - review comments from the active review system
@@ -25,6 +28,9 @@ When local execution memory is in use:
 Revision indexes MUST use zero-padded numeric form: `r001`, `r002`, `r003`,
 and so on. Review comment identifiers inside review files use `c1`, `c2`, `c3`,
 and so on.
+
+Those revision-scoped issue files are part of the canonical review flow, not a
+private skill-only convention.
 
 ## STRUCTURE
 

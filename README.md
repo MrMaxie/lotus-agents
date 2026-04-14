@@ -136,9 +136,13 @@ repo/
 
 Use that fuller shape only when the repo actually needs it.
 
+For review-based work, `revision-id` means `<issue-id>-r001`, `<issue-id>-r002`,
+and so on. When local execution memory is in use, review revisions can create
+both review artifacts and issue-style artifacts keyed by that `revision-id`.
+
 - `.local/context.md` carries resume hints and machine-local constraints
 - `.local/issues/` and `.local/issues-notes/` separate requested work from
-  working notes
+  working notes for both issue ids and review revision ids
 - `.local/questions/` groups human clarifications without polluting durable docs
 - `.local/runs/` supports non-issue work
 - `.local/reviews/` and `.local/pr-notes/` stay optional until review flow or
@@ -154,9 +158,11 @@ state belongs.
 - `.local/AGENTS.md`: machine-local overrides only
 - `.local/context.md`: resume hints and local context
 - `.local/templates/`: private helper snippets
-- `.local/issues/`: issue inputs
-- `.local/issues-notes/`: working notes and decisions
-- `.local/questions/`: unanswered human questions
+- `.local/issues/`: issue inputs for both `issue-id` and `revision-id`
+- `.local/issues-notes/`: working notes and decisions for both `issue-id` and
+  `revision-id`
+- `.local/questions/`: unanswered human questions, including `q<revision-id>.md`
+  for blocking review questions
 - `.local/runs/`: non-issue run logs
 - `.local/reviews/`: review artifacts
 - `.local/pr-notes/`: user-facing change summary drafts
@@ -202,7 +208,7 @@ These are private helper patterns, not committed source of truth.
 - ...
 ```
 
-`.local/issues/<issue-id>.md`:
+`.local/issues/<issue-id>.md` or `.local/issues/<revision-id>.md`:
 
 ```md
 # Issue - <issue-id>
@@ -223,7 +229,10 @@ These are private helper patterns, not committed source of truth.
 - ...
 ```
 
-`.local/issues-notes/<issue-id>.md`:
+Use the same structure for a review revision issue such as
+`.local/issues/123-r001.md`.
+
+`.local/issues-notes/<issue-id>.md` or `.local/issues-notes/<revision-id>.md`:
 
 ```md
 # Issue Notes - <issue-id>
@@ -249,6 +258,9 @@ These are private helper patterns, not committed source of truth.
 ## Resume Point
 ...
 ```
+
+Use the same structure for a review revision notes file such as
+`.local/issues-notes/123-r001.md`.
 
 `.local/questions/q<id>.md`:
 
@@ -294,6 +306,9 @@ These are private helper patterns, not committed source of truth.
 ### Fix Notes
 - ...
 ```
+
+Blocking questions for a review revision go in
+`.local/questions/q<revision-id>.md`.
 
 `.local/runs/001.md`:
 
