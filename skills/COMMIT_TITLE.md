@@ -6,7 +6,7 @@ machine.
 ## INPUT
 - diff
 - issue
-- specs
+- specs when the repo keeps durable expectations in `docs/specs/`; otherwise omit
 
 ## OUTPUT
 - 1-3 commit title proposals
@@ -22,4 +22,4 @@ machine.
 <type>: <what changed>
 
 example:
-feat: add collapsible chat with dual state
+refactor: clarify COMMIT_TITLE optional specs input
