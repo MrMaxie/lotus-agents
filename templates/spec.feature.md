@@ -1,0 +1,19 @@
+# Feature: <name>
+
+## Purpose
+...
+
+## Behavior
+...
+
+## Constraints
+...
+
+## Edge Cases
+...
+
+## Technical Notes
+...
+
+## Deprecated
+...
