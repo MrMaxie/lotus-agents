@@ -12,29 +12,40 @@ Official optional extension for review-based work.
 
 When local execution memory is in use:
 
-1. `.local/reviews/<issue-id>-r001.md`
-2. `.local/reviews/<issue-id>-r001-answers.md`
-3. `.local/issues/<issue-id>-r001.md`
-4. `.local/issues-notes/<issue-id>-r001.md`
+1. `<reviews_dir>/<revision-id>.md`
+2. `<reviews_dir>/<revision-id>-answers.md`
+3. `<issues_dir>/<revision-id>.md`
+4. `<issue_notes_dir>/<revision-id>.md`
 
-Revision indexes MUST use zero-padded numeric form: `r001`, `r002`, `r003`, ...
-Review comment identifiers inside review files use `c1`, `c2`, `c3`, ...
+`revision-id` means `<issue-id>-r001`, `<issue-id>-r002`, and so on.
+
+Revision indexes MUST use zero-padded numeric form: `r001`, `r002`, `r003`,
+and so on. Review comment identifiers inside review files use `c1`, `c2`, `c3`,
+and so on.
 
 ## STRUCTURE
 
 ### review file
 
 ```md
-# Review - <issue-id>-r001
+# Review - <revision-id>
 
-## c1
-<comment>
+## Source
+...
+
+## Scope
+...
+
+## New Comments
+
+### c1
+...
 ```
 
 ### answers file
 
 ```md
-# Review Answers - <issue-id>-r001
+# Review Answers - <revision-id>
 
 ## c1
 
@@ -49,8 +60,8 @@ Review comment identifiers inside review files use `c1`, `c2`, `c3`, ...
 
 1. collect review comments
 2. store only new comments that are not already captured in prior review files
-3. create a sub-issue using the next revision index
-4. process that sub-issue like normal issue work
+3. create a revision issue using the next revision index
+4. process that revision issue like normal issue work
 5. use `q<revision-id>.md` for blocking questions when questions are needed
 6. update the answers file after the fixes are done
 

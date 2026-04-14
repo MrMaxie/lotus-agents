@@ -11,27 +11,33 @@ The contract is intentionally narrow. It answers four questions:
 3. where local execution state belongs
 4. when the agent must avoid creating new structure
 
-Normative rules live in `AGENTS.md`. This file is the human-facing guide.
+Normative rules live in `AGENTS.md`. This file explains the system to humans.
 
 ## What Lives In This Repository
 
 - `AGENTS.md` - canonical runtime contract
-- `OVERVIEW.md` - compact mental model
-- `INTEGRATION.md` - practical adoption steps
-- `ARTIFACT_MATRIX.md` - when each file exists and what it means
-- `CONTRACT_CHECKLIST.md` - consistency checklist for maintainers
+- `START_HERE.md` - consumer-repo entry point
+- `REFERENCE.md` - consolidated secondary reference
+- `INTEGRATION.md` - adoption and bootstrap guidance
+- `RATIONALE.md` - why the system exists and what it refuses to decide
 - `skills/` - focused workflow modules
-- `templates/` - starter files for local artifacts
-- `examples/consumer-repo/` - small adoption examples
+- `templates/` - starter files for shared and local artifacts
+- `scripts/` - bootstrap and validation helpers
+- `examples/` - adoption shapes and a reference run
 - `lotus.config.yaml.example` - path override example
+- `lotus.config.schema.json` - machine-readable config schema
+
+Compatibility entrypoints remain in `OVERVIEW.md`, `ARTIFACT_MATRIX.md`, and
+`CONTRACT_CHECKLIST.md`, but `REFERENCE.md` is the canonical secondary
+reference.
 
 ## Core Model
 
 Lotus Agents separates three knowledge layers:
 
 - committed runtime rules in `AGENTS.md`
-- durable project knowledge in `docs/` or a configured equivalent
-- local execution memory in `.local/` or a configured equivalent
+- durable project knowledge in the active docs source
+- local execution memory under the configured local root
 
 The execution loop is always:
 
@@ -39,58 +45,76 @@ The execution loop is always:
 2. ACT
 3. ASSERT
 
-## Why This Helps
+## Design Intent
 
 Lotus Agents is designed to make agent work:
 
-- resumable across runs
-- easier to audit
-- safer when docs, meetings, and local notes all exist
-- more portable between repositories with different maturity levels
+- deterministic about what it reads before it changes anything
+- explicit about what outranks what
+- resumable without inventing durable structure on the fly
+- portable across repositories with different layouts and maturity levels
+- auditable by both humans and agents
 
-It is not meant to impose a heavyweight process on every repository.
+## Non-Goals
 
-## Official Optional Extensions
+Lotus Agents does not try to be:
 
-Review artifacts and PR notes are part of the system, but they are optional.
-Repositories can adopt the core runtime contract without using review files,
-PR notes, or any local execution memory at all.
+- a process framework
+- an issue tracker
+- a review tool
+- a documentation system for every repository
+- a mandate that every repository must have local execution memory
+
+## When The Contract Is Silent
+
+When the contract does not prescribe a single action, the agent should:
+
+- prefer the smallest coherent change
+- avoid guessing identifiers or intent
+- ask a question when ambiguity blocks the work
+- otherwise continue with an explicit assumption recorded in notes or a run log
+- avoid creating new durable structure without explicit human intent
+
+## Audiences
+
+- `AGENTS.md` is for agents and any human validating the runtime contract
+- `START_HERE.md` is for humans integrating Lotus Agents into another repository
+- `REFERENCE.md` is for humans and agents who need a compact shared reference
+- `RATIONALE.md` is for maintainers deciding whether the system is the right fit
 
 ## Adopting It In Another Repository
 
-Start with:
+The promoted adoption model is `Copy Pack`.
+
+Use `scripts/init.ps1` or `scripts/init.sh` from this repository to copy the
+starter pack into a target repository, or copy the pack manually. The target
+repository keeps its own `README.md`; Lotus Agents should not replace it.
+
+The recommended starter pack is:
 
 1. `AGENTS.md`
-2. `README.md`
-3. `OVERVIEW.md`
-4. `INTEGRATION.md`
-5. `ARTIFACT_MATRIX.md`
-6. `CONTRACT_CHECKLIST.md`
-7. `skills/`
-8. `templates/`
-9. `lotus.config.yaml.example`
+2. `START_HERE.md`
+3. `REFERENCE.md`
+4. `skills/`
+5. `templates/`
+6. `lotus.config.yaml.example`
+7. `lotus.config.schema.json`
+8. optional `scripts/validate-contract.ps1`
+9. optional `scripts/validate-contract.sh`
 
 Then choose one of three adoption modes:
 
 - minimal repository with no docs and no local memory
-- repository with local execution memory under `.local/`
+- repository with local execution memory under the configured local root
 - repository with custom paths resolved through `lotus.config.yaml`
 
-See [INTEGRATION.md](INTEGRATION.md) for the quick-start checklist and
-[examples/consumer-repo](examples/consumer-repo) for concrete shapes.
-
-## What Lotus Agents Does Not Require
-
-Lotus Agents does not require:
-
-- a specific issue tracker
-- a specific code host
-- a specific review system
-- a fixed repository layout
-- durable docs in every repository
+See `START_HERE.md` for the short path, `INTEGRATION.md` for more detail, and
+`examples/` for concrete shapes.
 
 ## About This Repository
 
-This repository defines Lotus Agents itself. It does not yet consume the full
-local execution flow internally. That self-hosting step can happen later once
-the contract is stable enough to reuse without caveats.
+This repository defines Lotus Agents itself. It now includes bootstrap and
+validation material intended to make reuse less ambiguous. It is still not
+using the full runtime contract against itself as a consuming repository. That
+self-hosted reference can happen later once the cleanup is stable enough to
+reuse without caveats.

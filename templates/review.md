@@ -1,4 +1,4 @@
-# Review - <issue-id>-r001
+# Review - <revision-id>
 
 ## Source
 ...

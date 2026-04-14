@@ -5,9 +5,10 @@ memory under custom directory names.
 
 ```text
 repo/
-  AGENTS.md
   README.md
-  OVERVIEW.md
+  AGENTS.md
+  START_HERE.md
+  REFERENCE.md
   knowledge/
     specs/
     meetings/
@@ -19,6 +20,7 @@ repo/
     questions/
     runs/
   lotus.config.yaml
+  lotus.config.schema.json
 ```
 
 See the example `lotus.config.yaml` in this directory.

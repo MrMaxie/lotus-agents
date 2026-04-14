@@ -3,34 +3,35 @@
 This checklist is for a repository that wants to consume Lotus Agents. It is
 not the bootstrap checklist for this definition repository.
 
-1. copy the committed Lotus Agents files you want to reuse
+1. copy the starter pack you actually want to keep in the target repository
    - `AGENTS.md`
-   - `README.md`
-   - `OVERVIEW.md`
-   - `INTEGRATION.md`
-   - `ARTIFACT_MATRIX.md`
-   - `CONTRACT_CHECKLIST.md`
+   - `START_HERE.md`
+   - `REFERENCE.md`
    - `skills/`
    - `templates/`
    - `lotus.config.yaml.example`
+   - `lotus.config.schema.json`
+   - optional validation scripts
 
-2. add `.local/` to `.git/info/exclude` if you want local execution memory
+2. keep the target repository's own `README.md`
 
-3. create `.local/` only if you want local execution memory
+3. create the configured `local_root` only if a human explicitly wants local
+   execution memory
 
-4. inside `.local/`, create only the directories you need
-   - `issues/`
-   - `issues-notes/`
-   - `questions/`
-   - `runs/`
-   - `reviews/`
-   - `pr-notes/`
+4. inside that local root, create only the directories you need
+   - `issues_dir`
+   - `issue_notes_dir`
+   - `questions_dir`
+   - `runs_dir`
+   - optional `reviews_dir`
+   - optional `pr_notes_dir`
 
 5. optional local files
-   - `.local/AGENTS.md`
-   - `.local/context.md`
+   - `local_agents_file`
+   - `context_file`
 
-6. create `docs/` or `.local/docs/` only on explicit human intent
+6. create the committed docs tree or the configured local-only docs tree only
+   on explicit human intent
    - if you create local-only docs, mirror `specs/` and `meetings/`
 
 7. optional

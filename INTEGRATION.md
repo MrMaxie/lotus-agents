@@ -5,21 +5,26 @@ point.
 
 ## Quick Start
 
-1. Copy these committed files into the target repository:
-   - `AGENTS.md`
-   - `README.md`
-   - `OVERVIEW.md`
-   - `INTEGRATION.md`
-   - `ARTIFACT_MATRIX.md`
-   - `CONTRACT_CHECKLIST.md`
-   - `skills/`
-   - `templates/`
-   - `lotus.config.yaml.example`
-2. Decide whether the repository needs local execution memory.
-3. If yes, add `.local/` to `.git/info/exclude`.
-4. Create `.local/` only when a human explicitly wants it.
-5. Copy `lotus.config.yaml.example` to `lotus.config.yaml` only when the target
-   repository does not use the default path layout.
+Use one of these two paths:
+
+1. run `scripts/init.ps1` or `scripts/init.sh` from this repository and point it
+   at the target repository
+2. copy the starter pack manually
+
+The recommended starter pack for a target repository is:
+
+- `AGENTS.md`
+- `START_HERE.md`
+- `REFERENCE.md`
+- `skills/`
+- `templates/`
+- `lotus.config.yaml.example`
+- `lotus.config.schema.json`
+- optional `scripts/validate-contract.ps1`
+- optional `scripts/validate-contract.sh`
+
+Do not replace the target repository's own `README.md` with this repository's
+`README.md`.
 
 ## Minimal Adoption
 
@@ -30,26 +35,27 @@ Use the contract without bootstrapping docs or local execution memory when:
 - resumable local notes are not yet needed
 
 In that mode, the agent still uses `AGENTS.md`, the codebase, the diff, and any
-existing durable docs that are already present.
+durable docs that already exist.
 
 ## Adoption With Local Execution Memory
 
 When a repository wants resumable local state:
 
-1. add `.local/` to `.git/info/exclude`
-2. create only the directories you need:
-   - `.local/issues/`
-   - `.local/issues-notes/`
-   - `.local/questions/`
-   - `.local/runs/`
-   - optional `.local/reviews/`
-   - optional `.local/pr-notes/`
-3. optionally add:
-   - `.local/AGENTS.md`
-   - `.local/context.md`
+1. create the configured `local_root` only when a human explicitly wants local
+   execution memory
+2. inside it, create only the directories you need
+   - `issues_dir`
+   - `issue_notes_dir`
+   - `questions_dir`
+   - `runs_dir`
+   - optional `reviews_dir`
+   - optional `pr_notes_dir`
+3. optionally add
+   - `local_agents_file`
+   - `context_file`
 
-Do not create `.local/` just because Lotus Agents exists. Create it when the
-repository actually benefits from local execution memory.
+The default paths for those directories are documented in `AGENTS.md` and the
+schema example.
 
 ## Adoption With Custom Paths
 
@@ -60,18 +66,21 @@ Typical reasons:
 
 - docs already live under another directory
 - local operational notes are stored somewhere other than `.local/`
-- the repo uses a different default branch than `main` or `master`
+- the repository uses a different default branch than `main` or `master`
 
-## Local-Only Docs
+Use `lotus.config.schema.json` to validate the keys and expected value shapes.
 
-Use local-only docs only when the human explicitly asks for them.
+## Docs Source Rules
 
-If local-only docs are bootstrapped, mirror the committed docs semantics:
+The docs rules are intentionally strict:
 
-- `specs/` for durable expectations
-- `meetings/` for chronological context
-
-If committed docs exist, they always win over local-only docs.
+- if the committed docs tree exists, it is the only active durable docs source
+- local-only docs are a fallback only when the committed docs tree does not
+  exist
+- if a human asks for local draft docs while committed docs exist, keep them as
+  local artifacts under `local_root`; they are not the active docs source
+- do not bootstrap committed docs or local-only docs unless a human explicitly
+  asked for that
 
 ## Optional Extensions
 
@@ -83,6 +92,15 @@ Adopt them only when the repository actually needs:
 - stored review replies
 - local PR description drafts
 
+## Validation
+
+After copying the starter pack:
+
+1. review `AGENTS.md` and adjust only what is repository-specific
+2. add a `lotus.config.yaml` only if the defaults are wrong for that repository
+3. run `scripts/validate-contract.ps1` or `scripts/validate-contract.sh` in the
+   target repository if you copied the validation helper
+
 ## Examples
 
 See:
@@ -90,3 +108,4 @@ See:
 - [examples/consumer-repo/01-minimal](examples/consumer-repo/01-minimal/README.md)
 - [examples/consumer-repo/02-with-local](examples/consumer-repo/02-with-local/README.md)
 - [examples/consumer-repo/03-custom-layout](examples/consumer-repo/03-custom-layout/README.md)
+- [examples/reference-run](examples/reference-run/README.md)

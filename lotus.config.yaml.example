@@ -1,6 +1,7 @@
 # Optional Lotus Agents path overrides.
 # Copy this file to lotus.config.yaml only when a repository uses different
 # directory names than the default Lotus Agents conventions.
+# See lotus.config.schema.json for the machine-readable schema.
 
 docs_root: docs
 specs_dir: docs/specs

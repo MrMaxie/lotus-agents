@@ -32,11 +32,18 @@ When instructions or knowledge sources conflict, apply this order:
 1. explicit human instruction in the current run
 2. the configured local agents file, default `.local/AGENTS.md`
 3. `AGENTS.md`
-4. the active specs directory
-5. the latest 3 files from the active meetings directory
-6. the active local docs tree, but only when the committed docs tree does not
-   exist
-7. the codebase and current repository state
+4. the active docs source resolved during ARRANGE
+   - the active specs directory
+   - the latest 3 files from the active meetings directory
+5. the codebase and current repository state
+
+The configured local agents file is only for machine-local, temporary, or
+execution-specific overrides. It MUST NOT redefine durable project truth that
+belongs in committed docs or other shared repository artifacts.
+
+The configured context file is execution memory, not durable source of truth.
+It may guide the current run, but it does not outrank human instructions, the
+local agents file, `AGENTS.md`, or the active docs source.
 
 ## Path Resolution
 
@@ -63,7 +70,9 @@ paths are resolved from the repository root.
 | `default_branch` | `auto` |
 
 When `default_branch` is `auto`, detect whether the repository uses `main` or
-`master`. If both exist, prefer the repository default branch.
+`master`. If both exist, prefer the repository default branch. If neither is
+available and no default branch can be detected, use explicit human input when
+available and otherwise ask or record an explicit assumption.
 
 ## ARRANGE
 
@@ -78,20 +87,29 @@ Before acting, the agent MUST:
    - issue-based work
    - review-based work
    - general run without an issue id
-4. identify whether the work is tied to an issue id
-   - source order: human input, branch name, local issue files
-   - if no issue id exists, continue as a general run
+4. infer whether the work is tied to an issue id
+   - gather candidates from human input, branch naming, and local issue files
+   - if exactly one unambiguous candidate exists, use it
+   - if no candidate exists, continue as a general run
+   - if multiple plausible candidates exist, do not guess
+   - ask a question when the ambiguity blocks execution; otherwise continue with
+     an explicit assumption recorded in notes or the run log
 5. inspect local context when available
    - read the configured local agents file if it exists
    - read the configured context file if it exists
    - if an issue id exists, read `<issues_dir>/<issue-id>.md` if it exists
-6. resolve the active documentation source
-   - if `docs_root` exists, use `specs_dir` and `meetings_dir`
-   - otherwise, if `local_docs_root` exists, use `local_specs_dir` and
-     `local_meetings_dir`
-   - otherwise rely on the codebase, the current diff, and human input
-7. read meeting files deterministically
-   - read at most the latest 3 meeting files
+6. resolve the active docs source
+   - if `docs_root` exists, the committed docs tree is the active docs source
+   - otherwise, if `local_docs_root` exists, the local-only docs tree is the
+     active docs source
+   - otherwise there is no active docs source
+   - if a human asks for local draft docs while the committed docs tree exists,
+     treat those drafts as local artifacts under `local_root`, not as the active
+     docs source
+7. read active docs deterministically
+   - read the active specs directory when present
+   - read at most the latest 3 files from the active meetings directory when
+     present
    - if meeting filenames begin with `YYYY-MM-DD`, sort descending by filename
    - otherwise sort descending by modification time
 8. understand repository context
@@ -103,7 +121,7 @@ local artifacts for that run instead of creating them.
 
 ### Task Profiles
 
-| Task shape | Required reads | Local writes when local execution memory is in use | Notes file | Question file | Stop when |
+| Task shape | Reads when present after ARRANGE resolution | Local writes when local execution memory is in use | Notes file | Question file | Stop when |
 | --- | --- | --- | --- | --- | --- |
 | `issue-based` | human instruction, local rules, context, issue file, active specs, latest meetings, diff | code or docs changes, issue notes, optional questions | `<issue_notes_dir>/<issue-id>.md` | `<questions_dir>/q<issue-id>.md` | blocking ambiguity, missing permissions, or missing human input |
 | `review-based` | issue-based inputs plus active review comments and prior revision artifacts when present | review file, review answers, revision issue file, revision issue notes, optional questions | `<issue_notes_dir>/<revision-id>.md` | `<questions_dir>/q<revision-id>.md` | blocking ambiguity, missing permissions, or missing human input |
@@ -113,8 +131,8 @@ local artifacts for that run instead of creating them.
 
 - `issue id` means a stable, repository-native task identifier taken from human
   input, branch naming, or local issue files.
-- Preserve the issue id as written when it is filename-safe. When filesystem
-  rules make that unsafe, replace only illegal path characters with `-`.
+- Preserve the issue id as written when filename-safe. When filesystem rules
+  make that unsafe, replace only illegal path characters with `-`.
 - `revision id` means `<issue-id>-r001`, `<issue-id>-r002`, and so on. Revision
   indexes are zero-padded numeric values.
 - Non-issue helper indexes use zero-padded numeric values such as `001`, `002`,
@@ -161,16 +179,20 @@ intent.
 
 Rules:
 
-- do not create the committed docs tree or the local docs tree on your own
+- do not create the committed docs tree or the local-only docs tree on your own
 - if the human says only "generate docs", default to the committed docs tree
-- if the human explicitly asks for local-only docs, use the local docs tree
-- if the committed docs tree exists, ignore the local docs tree
-- if the committed docs tree does not exist but the local docs tree exists, use
-  the local docs tree
-- if neither exists, do not invent documentation structure; rely on the
-  codebase and current human guidance
+- if the committed docs tree exists, it is the only active durable docs source
+- local-only docs are a fallback only when the committed docs tree does not
+  exist
+- if the human explicitly asks for local-only docs and the committed docs tree
+  does not exist, use the local-only docs tree
+- if the human explicitly asks for local draft docs while the committed docs
+  tree exists, store them under `local_root` as local artifacts and do not treat
+  them as the active docs source
+- if neither docs tree exists, do not invent documentation structure unless the
+  human explicitly asked for docs to be bootstrapped
 
-The local docs tree mirrors the same semantics as the committed docs tree:
+The local-only docs tree mirrors the same semantics as the committed docs tree:
 
 - `specs` holds durable expectations for the active local workflow
 - `meetings` holds chronological local context and remains read-only
@@ -192,6 +214,8 @@ Rules:
 
 ## Glossary
 
+- `active docs source`: the committed docs tree when present, otherwise the
+  configured local-only docs tree when present
 - `durable knowledge`: reusable project truth that belongs in specs
 - `local execution memory`: machine-local operational state kept under the
   configured local root

@@ -14,6 +14,7 @@ override the shared contract on one machine.
 - restating the shared runtime contract
 - durable project rules that belong in committed docs
 - human instructions that are only relevant to one run
+- redefining repository truth that should live in committed artifacts
 
 ## Example Structure
 

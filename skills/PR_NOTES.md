@@ -6,11 +6,11 @@ Official optional extension for user-facing change summaries.
 
 ## OUTPUT FILE
 
-`.local/pr-notes/<id>.md` when local execution memory is in use
+`<pr_notes_dir>/<id>.md` when local execution memory is in use
 
 ## RULES
 
-- describe WHAT changed from the user perspective
+- describe what changed from the user perspective
 - avoid:
   - class names
   - implementation details
@@ -21,14 +21,15 @@ Official optional extension for user-facing change summaries.
 
 ## UPDATE MODE
 
-IF file exists:
+If the file exists:
+
 - merge changes
 - produce a final version, not a changelog
 
 ## TEMPLATE HANDLING
 
 - preserve:
-  - screenshots sections
+  - screenshot sections
   - video sections
   - unknown sections
 - do not fill a section if you are unsure

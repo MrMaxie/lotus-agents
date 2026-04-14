@@ -4,19 +4,21 @@ This example shows the smallest useful Lotus Agents adoption.
 
 ```text
 repo/
-  AGENTS.md
   README.md
-  OVERVIEW.md
-  INTEGRATION.md
-  ARTIFACT_MATRIX.md
-  CONTRACT_CHECKLIST.md
+  AGENTS.md
+  START_HERE.md
+  REFERENCE.md
   skills/
   templates/
+  lotus.config.yaml.example
+  lotus.config.schema.json
 ```
 
 Characteristics:
 
-- no `docs/`
-- no `.local/`
+- the repository keeps its own `README.md`
+- no committed docs tree is bootstrapped
+- no local root is bootstrapped
 - no `lotus.config.yaml`
-- the agent works from the contract, codebase, diff, and current human input
+- the agent works from the contract, the codebase, the diff, and current human
+  input
