@@ -5,7 +5,7 @@ machine.
 
 ## PURPOSE
 
-Official optional extension for user-facing change summaries.
+Optional example skill for user-facing change summaries.
 
 ## OUTPUT FILE
 
