@@ -14,7 +14,6 @@ The current product shape is:
 - `README.md` is the main human entrypoint
 - `AGENTS_TO_COPY.md` is the copyable flow artifact for consumer repos
 - `skills/` contains optional example skills
-- `examples/` shows adoption shapes and a fuller reference run
 
 ## What This Repository Is Not
 
@@ -28,7 +27,7 @@ Do not treat this repo as a consumer repository by default.
 
 When changing the contract or adoption story:
 
-1. keep `README.md`, `AGENTS_TO_COPY.md`, and `examples/` aligned
+1. keep `README.md` and `AGENTS_TO_COPY.md` aligned
 2. keep the model `.local`-first and copy-paste friendly
 3. do not reintroduce setup scripts, path config, or custom layout support
    unless a human explicitly asks
@@ -42,8 +41,6 @@ If you change naming, paths, or adoption flow, review at least:
 
 - `README.md`
 - `AGENTS_TO_COPY.md`
-- `examples/consumer-repo/`
-- `examples/reference-run/`
 - any relevant files in `skills/`
 
 ## Source Of Truth For This Repo

@@ -77,6 +77,21 @@ it by surprise.
 Use `.local/templates/` only for private helper snippets. Templates are not a
 source of truth.
 
+## Common Artifact Roles
+
+- `.local/context.md`: stable local context, machine constraints, and resume
+  hints
+- `.local/issues/<issue-id>.md`: goal, background, constraints, and acceptance
+  criteria for the requested work
+- `.local/issues-notes/<issue-id>.md`: progress, outputs, decisions, and resume
+  point for active work
+- `.local/questions/q<id>.md`: grouped clarification questions and answers
+- `.local/reviews/<revision-id>.md`: captured review comments for one revision
+- `.local/reviews/<revision-id>-answers.md`: proposed replies and fix notes
+- `.local/runs/001.md`: log for non-issue work
+- `.local/pr-notes/<id>.md`: user-facing summary draft when release notes or PR
+  notes matter
+
 ## Docs Rules
 
 - `docs/` is optional and committed

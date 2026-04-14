@@ -23,10 +23,10 @@ Lotus Agents narrows that down to one convention.
 
 ## What Lives In This Repo
 
+- `README.md`: main human entrypoint, adoption guide, and starter snippets
 - `AGENTS.md`: repo-specific instructions for agents working on Lotus Agents
 - `AGENTS_TO_COPY.md`: the file meant for copy/merge/reference in other repos
 - `skills/`: optional example skills
-- `examples/`: adoption examples and a fuller reference run
 
 ## Core Shape In A Consumer Repo
 
@@ -111,6 +111,41 @@ If the files conflict, this `AGENTS.md` wins unless it explicitly says
 otherwise.
 ```
 
+## Fuller `.local`-First Shape
+
+A repo that leans fully into the flow often grows into this shape:
+
+```text
+repo/
+  AGENTS.md
+  AGENTS_ISSUE_FLOW.md        # optional when AGENTS already exists
+  docs/
+    specs/
+    meetings/
+  .local/
+    AGENTS.md
+    context.md
+    templates/
+    issues/
+    issues-notes/
+    questions/
+    runs/
+    reviews/
+    pr-notes/
+```
+
+Use that fuller shape only when the repo actually needs it.
+
+- `.local/context.md` carries resume hints and machine-local constraints
+- `.local/issues/` and `.local/issues-notes/` separate requested work from
+  working notes
+- `.local/questions/` groups human clarifications without polluting durable docs
+- `.local/runs/` supports non-issue work
+- `.local/reviews/` and `.local/pr-notes/` stay optional until review flow or
+  user-facing summaries matter
+- `docs/specs/` holds durable expectations; `docs/meetings/` holds
+  chronological context
+
 ## What Goes In `.local/`
 
 `.local/` is the main entrypoint of the idea. It is where private execution
@@ -145,9 +180,50 @@ To keep it private, add this to `.git/info/exclude` or your repo ignore rules:
 Agent rule: read specs, then at most the latest 3 meeting files. Never rewrite
 meeting files.
 
-## Tiny Snippets
+## Optional Local File Starters
 
-Private template example for `.local/templates/issue-notes.md`:
+These are private helper patterns, not committed source of truth.
+
+`.local/context.md`:
+
+```md
+# Local Context
+
+## Stable Context
+- ...
+
+## Local Constraints
+- ...
+
+## Active Workstreams
+- ...
+
+## Resume Hints
+- ...
+```
+
+`.local/issues/<issue-id>.md`:
+
+```md
+# Issue - <issue-id>
+
+## Goal
+...
+
+## Background
+...
+
+## Constraints
+- ...
+
+## Acceptance Criteria
+- ...
+
+## Open Questions
+- ...
+```
+
+`.local/issues-notes/<issue-id>.md`:
 
 ```md
 # Issue Notes - <issue-id>
@@ -155,17 +231,26 @@ Private template example for `.local/templates/issue-notes.md`:
 ## Goal
 ...
 
+## Context
+- ...
+
 ## Progress
 - ...
 
-## Decisions
+## Outputs
+- ...
+
+## Decisions and Assumptions
+- ...
+
+## Open Questions
 - ...
 
 ## Resume Point
 ...
 ```
 
-Private template example for `.local/templates/questions.md`:
+`.local/questions/q<id>.md`:
 
 ```md
 # Questions - q<id>
@@ -177,6 +262,82 @@ Private template example for `.local/templates/questions.md`:
 
 ### Answer
 ...
+```
+
+`.local/reviews/<revision-id>.md`:
+
+```md
+# Review - <revision-id>
+
+## Source
+...
+
+## Scope
+...
+
+## New Comments
+
+### c1
+...
+```
+
+`.local/reviews/<revision-id>-answers.md`:
+
+```md
+# Review Answers - <revision-id>
+
+## c1
+
+### Proposed Reply
+...
+
+### Fix Notes
+- ...
+```
+
+`.local/runs/001.md`:
+
+```md
+# Run 001
+
+## Goal
+...
+
+## Context
+- ...
+
+## Actions
+- ...
+
+## Outputs
+- ...
+
+## Decisions and Assumptions
+- ...
+
+## Open Questions
+- ...
+
+## Resume Point
+...
+```
+
+`.local/pr-notes/<id>.md`:
+
+```md
+# PR Notes - <id>
+
+## Summary
+...
+
+## User-Visible Changes
+- ...
+
+## Relevant Refactors
+- ...
+
+## Risks and Follow-Ups
+- ...
 ```
 
 ## Skills
@@ -222,8 +383,3 @@ Usually one of these:
 - optional skill files if you want repo-local skills
 
 You do not need setup scripts, config files, or a large starter pack.
-
-## Examples
-
-- [consumer-repo](examples/consumer-repo/README.md): three adoption styles
-- [reference-run](examples/reference-run/README.md): one fuller `.local`-first run
