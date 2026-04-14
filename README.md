@@ -215,7 +215,7 @@ These are private helper patterns, not committed source of truth.
 `.local/issues/<issue-id>.md` or `.local/issues/<revision-id>.md`:
 
 ```md
-# Issue - <issue-id>
+# Issue - <artifact-id>
 
 ## Goal
 ...
@@ -233,13 +233,14 @@ These are private helper patterns, not committed source of truth.
 - ...
 ```
 
-Use the same structure for a review revision issue such as
-`.local/issues/123-r001.md`.
+Here, `<artifact-id>` means either `<issue-id>` or `<revision-id>`. For a
+review revision issue, that means a file such as `.local/issues/123-r001.md`
+with the heading `# Issue - 123-r001`.
 
 `.local/issues-notes/<issue-id>.md` or `.local/issues-notes/<revision-id>.md`:
 
 ```md
-# Issue Notes - <issue-id>
+# Issue Notes - <artifact-id>
 
 ## Goal
 ...
@@ -263,13 +264,18 @@ Use the same structure for a review revision issue such as
 ...
 ```
 
-Use the same structure for a review revision notes file such as
-`.local/issues-notes/123-r001.md`.
+Here, `<artifact-id>` means either `<issue-id>` or `<revision-id>`. For a
+review revision notes file, that means
+`.local/issues-notes/123-r001.md` with the heading
+`# Issue Notes - 123-r001`.
 
-`.local/questions/q<id>.md`:
+`.local/questions/q<issue-id>.md`, `.local/questions/q<revision-id>.md`, or
+`.local/questions/q001.md`:
 
 ```md
-# Questions - q<id>
+# Questions - q<file-key>
+
+Examples: `q123`, `q123-r001`, `q001`
 
 ## q1
 
