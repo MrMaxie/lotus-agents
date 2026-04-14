@@ -170,6 +170,11 @@ state belongs.
 If a repo does not have `.local/` yet, do not invent it by surprise. Create it
 when the human wants the flow.
 
+When non-blocking ambiguity appears, continue with an explicit assumption. Record
+that assumption in local notes only when `.local/` already exists. If `.local/`
+is absent by design, keep the assumption in the working response, handoff, or
+issue summary instead of bootstrapping private files just to store it.
+
 To keep it private, add this to `.git/info/exclude` or your repo ignore rules:
 
 ```gitignore

@@ -63,6 +63,11 @@ Before changing anything:
 If `.local/` does not exist and the human did not ask for it, do not bootstrap
 it by surprise.
 
+When non-blocking ambiguity appears, continue with an explicit assumption. Record
+that assumption in local notes only when `.local/` already exists. If `.local/`
+is absent by design, keep the assumption in the working response, handoff, or
+issue summary instead of creating private files just to store it.
+
 ## Artifact Rules
 
 - issue inputs: `.local/issues/<issue-id>.md`
@@ -115,4 +120,7 @@ source of truth.
 - keep durable truth in committed docs
 - keep temporary execution state in `.local/`
 - if ambiguity blocks execution, ask
-- otherwise continue with an explicit assumption recorded in local notes
+- otherwise continue with an explicit assumption
+- record that assumption in local notes only when `.local/` already exists
+- if `.local/` is absent by design, keep the assumption in the working response,
+  handoff, or issue summary
