@@ -1,0 +1,13 @@
+# Local Context
+
+## Stable Context
+- ...
+
+## Local Constraints
+- ...
+
+## Active Workstreams
+- ...
+
+## Resume Hints
+- ...

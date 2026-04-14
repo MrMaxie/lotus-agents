@@ -1,53 +1,63 @@
 # SKILL: REVIEW_PROCESS
 
+## PURPOSE
+
+Official optional extension for review-based work.
+
 ## INPUT
-- gh review comments
+
+- review comments from the active review system
 
 ## OUTPUT
 
-1. .local/reviews/<id>-r<index>.md
-2. .local/reviews/<id>-r<index>-answers.md
-3. .local/issues/<id>-r<index>.md
+When local execution memory is in use:
 
----
+1. `.local/reviews/<issue-id>-r001.md`
+2. `.local/reviews/<issue-id>-r001-answers.md`
+3. `.local/issues/<issue-id>-r001.md`
+4. `.local/issues-notes/<issue-id>-r001.md`
+
+Revision indexes MUST use zero-padded numeric form: `r001`, `r002`, `r003`, ...
+Review comment identifiers inside review files use `c1`, `c2`, `c3`, ...
 
 ## STRUCTURE
 
 ### review file
 
-# q1
-<comment>
+```md
+# Review - <issue-id>-r001
 
----
+## c1
+<comment>
+```
 
 ### answers file
 
-# q1
+```md
+# Review Answers - <issue-id>-r001
 
-## Proposed GitHub Reply
+## c1
+
+### Proposed Reply
 ...
 
-## Internal Notes
+### Fix Notes
 ...
-
----
+```
 
 ## FLOW
 
-1. collect comments
-2. structure them
-3. create sub-issue
-4. process normally
-5. update answers after fixes
-
----
+1. collect review comments
+2. store only new comments that are not already captured in prior review files
+3. create a sub-issue using the next revision index
+4. process that sub-issue like normal issue work
+5. use `q<revision-id>.md` for blocking questions when questions are needed
+6. update the answers file after the fixes are done
 
 ## PR NOTES EXTENSION
 
 When generating PR notes after review:
 
-- include ONLY meaningful changes
+- include only meaningful changes
 - ignore trivial fixes
-- highlight:
-  - new behavior
-  - major improvements
+- highlight new behavior and major improvements

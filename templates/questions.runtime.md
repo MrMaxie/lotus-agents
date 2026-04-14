@@ -1,9 +1,9 @@
-# Questions - q<index> <!-- Next int basing on previuous biggest -->
+# Questions - q001 <!-- Filename pattern: q001.md, q002.md, q003.md -->
 
-## q1 <!-- Where each question have next int: 1, 2, 3 etc -->
+## q1 <!-- Increment question numbers inside the file: q1, q2, q3 -->
 
 ### Question
-<!-- AI Agents Question -->
+<!-- Agent question -->
 
 ### Answer
-<!-- Human written or answered by agents interactions features -->
+<!-- Human answer -->

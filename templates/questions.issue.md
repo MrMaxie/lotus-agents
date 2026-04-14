@@ -1,9 +1,9 @@
-# Questions - <issue-id> <!-- Id of the reffered Issue -->
+# Questions - q<issue-id> <!-- Filename: q<issue-id>.md or q<revision-id>.md -->
 
-## q1 <!-- Where each question have next int: 1, 2, 3 etc -->
+## q1 <!-- Increment question numbers inside the file: q1, q2, q3 -->
 
 ### Question
-<!-- AI Agents Question -->
+<!-- Agent question -->
 
 ### Answer
-<!-- Human written or answered by agents interactions features -->
+<!-- Human answer -->

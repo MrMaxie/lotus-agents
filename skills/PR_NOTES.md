@@ -1,15 +1,19 @@
 # SKILL: PR_NOTES
 
+## PURPOSE
+
+Official optional extension for user-facing change summaries.
+
 ## OUTPUT FILE
-.local/pr-notes/<id>.md
+
+`.local/pr-notes/<id>.md` when local execution memory is in use
 
 ## RULES
 
-- describe WHAT changed (user perspective)
+- describe WHAT changed from the user perspective
 - avoid:
   - class names
   - implementation details
-
 - include:
   - feature changes
   - behavior updates
@@ -19,7 +23,7 @@
 
 IF file exists:
 - merge changes
-- produce final version (NOT changelog)
+- produce a final version, not a changelog
 
 ## TEMPLATE HANDLING
 
@@ -27,8 +31,8 @@ IF file exists:
   - screenshots sections
   - video sections
   - unknown sections
-
-- DO NOT fill if unsure
+- do not fill a section if you are unsure
+- use the PR notes template when bootstrapping a new file
 
 ## STYLE
 

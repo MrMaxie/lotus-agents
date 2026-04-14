@@ -1,82 +1,52 @@
 # Lotus Agents - Overview
 
-## Purpose
+Lotus Agents is a portable runtime contract for human-agent collaboration.
 
-Provide a persistent, structured, and agent-compatible workflow that:
+## It Answers Four Questions
 
-- stabilizes AI behavior across runs
-- separates raw human input from structured system truth
-- enforces disciplined execution (inspired by the AAA design pattern: Arrange -> Act -> Assert)
-- enables safe collaboration between human and AI
+1. what the agent reads
+2. what counts as source of truth
+3. where local execution memory belongs
+4. when the agent must not bootstrap new structure
 
----
+## Knowledge Layers
 
-## Core Concepts
+1. runtime rules
+   - `AGENTS.md`
+   - optional local agents file
 
-### 1. Two-Layer Knowledge System
+2. durable project knowledge
+   - committed docs
+   - optional local-only docs when committed docs do not exist
 
-- docs/meetings/* -> raw, chronological, human context (WHY)
-- docs/specs/* -> structured, current expectations (WHAT & HOW)
+3. local execution memory
+   - issue notes
+   - questions
+   - run logs
+   - optional review and PR note artifacts
 
----
+## Run Shapes
 
-### 2. Local Execution Memory
+- issue-based work
+- review-based work
+- general runs without an issue id
 
-- .local/* -> ephemeral, non-committed operational memory
-- used for:
-  - issues
-  - notes
-  - runs
-  - questions
-  - reviews
+## AAA Loop
 
----
+1. ARRANGE
+   - resolve paths, context, docs, and task shape
 
-### 3. AAA Execution Model
+2. ACT
+   - make minimal changes and write only the artifacts implied by the task
 
-- ARRANGE -> understand context and constraints
-- ACT -> perform minimal, precise work
-- ASSERT -> validate and synchronize knowledge
+3. ASSERT
+   - validate behavior and reconcile durable knowledge when it drifts
 
----
+## Non-Goals
 
-### 4. Skills System
+Lotus Agents does not require:
 
-Agents operate through explicit SKILLS:
-
-- SPEC_SYNC -> sync meetings -> specs
-- COMMIT_TITLE -> generate commit titles
-- PR_NOTES -> generate/update PR description
-- REVIEW_PROCESS -> process review feedback
-- DOCS_INIT -> bootstrap documentation
-- QUESTIONS -> manage human clarification loop
-
----
-
-### 5. Human-in-the-loop
-
-- AI MUST ask questions when ambiguity exists
-- questions stored in:
-  - .local/questions/<issue-id>.md
-  - .local/questions/<issue-id>-r<revision-index>.md
-  - .local/questions/q<index>.md
-
----
-
-### 6. Safety Principles
-
-- AI NEVER pushes commits
-- AI NEVER modifies meetings
-- AI prefers:
-  - precision > volume
-  - reuse > duplication
-  - consistency > novelty
-
----
-
-## Entry Points
-
-- AGENTS.md -> project-specific preferred descriptions of agent behavior
-- .local/AGENTS.md -> runtime rules
-- SKILLS/* -> behavior modules
-- templates/* -> standardized outputs
+- a specific issue tracker
+- a specific review host
+- a fixed repository structure
+- durable docs in every repository

@@ -1,103 +1,96 @@
-# Lotus Agents — Structure & Flow
+# Lotus Agents
 
-## Directory Structure
+Lotus Agents is a portable runtime contract for human-agent collaboration. It
+is meant to make agent work deterministic across resumes, clearer to audit, and
+less dependent on a single prompt.
 
-.local/ (optional, auto-created)
-- AGENTS.md → execution rules
-- context.md → optional global context
-- state.json → optional state
-- issues/<id>.md → task definition
-- issues-notes/<id>.md → execution notes
-- runs/<timestamp>.md → run summary
-- pr-notes/<id>.md → generated PR notes
-- reviews/<id>-r<index>.md → review comments
-- reviews/<id>-r<index>-answers.md → responses
-- clarifications/<id>.md → Q/A for issue
-- questions/q<timestamp>-<slug>.md → general questions
+The contract is intentionally narrow. It answers four questions:
 
-docs/ (optional, project-dependent)
-- meetings/ → chronological notes
-- specs/
-  - features/
-  - domains/
-  - decisions/
+1. what the agent reads
+2. what counts as source of truth
+3. where local execution state belongs
+4. when the agent must avoid creating new structure
 
----
+Normative rules live in `AGENTS.md`. This file is the human-facing guide.
 
-## Optionality Rules
+## What Lives In This Repository
 
-- If docs/ does NOT exist → DO NOT create
-- If docs/ exists but different structure → DO NOT modify
-- Fallback:
-  - use .local/docs/* with same structure
+- `AGENTS.md` - canonical runtime contract
+- `OVERVIEW.md` - compact mental model
+- `INTEGRATION.md` - practical adoption steps
+- `ARTIFACT_MATRIX.md` - when each file exists and what it means
+- `CONTRACT_CHECKLIST.md` - consistency checklist for maintainers
+- `skills/` - focused workflow modules
+- `templates/` - starter files for local artifacts
+- `examples/consumer-repo/` - small adoption examples
+- `lotus.config.yaml.example` - path override example
 
----
+## Core Model
 
-## ID Sources
+Lotus Agents separates three knowledge layers:
 
-- <issue-id>:
-  - from branch name OR
-  - from user input OR
-  - generated (e.g. timestamp)
+- committed runtime rules in `AGENTS.md`
+- durable project knowledge in `docs/` or a configured equivalent
+- local execution memory in `.local/` or a configured equivalent
 
-- <index>:
-  - review iteration (1,2,3...)
+The execution loop is always:
 
-- <timestamp>:
-  - YYYYMMDD-HHMM
+1. ARRANGE
+2. ACT
+3. ASSERT
 
----
+## Why This Helps
 
-## Flow (Mermaid)
+Lotus Agents is designed to make agent work:
 
-```mermaid
-flowchart TD
+- resumable across runs
+- easier to audit
+- safer when docs, meetings, and local notes all exist
+- more portable between repositories with different maturity levels
 
-A[Start] --> B[ARRANGE]
-B --> C[Read specs]
-B --> D[Read last 3 meetings]
-B --> E[Check repo diff]
+It is not meant to impose a heavyweight process on every repository.
 
-C --> F[ACT]
-D --> F
-E --> F
+## Official Optional Extensions
 
-F --> G[Write notes]
-G --> H[Implement changes]
+Review artifacts and PR notes are part of the system, but they are optional.
+Repositories can adopt the core runtime contract without using review files,
+PR notes, or any local execution memory at all.
 
-H --> I[ASSERT]
-I --> J[Validate vs specs]
-I --> K[Update specs if needed]
-I --> L[Prepare outputs]
+## Adopting It In Another Repository
 
-L --> M[PR Notes / Commit Title / Reviews]
-M --> N[End]
-```
+Start with:
 
-## Meetings Interpretation Rules
-- AI MUST read last 3 meetings
-- priority:
-  - newest overrides older context
-  - all decisions remain relevant
-- meetings are:
-  - context source
-  - NOT source of truth
+1. `AGENTS.md`
+2. `README.md`
+3. `OVERVIEW.md`
+4. `INTEGRATION.md`
+5. `ARTIFACT_MATRIX.md`
+6. `CONTRACT_CHECKLIST.md`
+7. `skills/`
+8. `templates/`
+9. `lotus.config.yaml.example`
 
-## Questions Flow
+Then choose one of three adoption modes:
 
-When ambiguity exists during working on issue:
-1. create or update: .local/questions/<issue-id>.md
-2. stop execution and ask human to answer questions if these topics blocks you; otherwise continue and ask for fullfilling answers after current execution
-3. if human will resume you or ask you to fullfill previuous changes, check answers and continue previously paused tasks
+- minimal repository with no docs and no local memory
+- repository with local execution memory under `.local/`
+- repository with custom paths resolved through `lotus.config.yaml`
 
-When ambiguity exists during creating/changing/updating docs:
-1. create or update: .local/questions/q<timestamp>-<slug>.md (slug like for migrations, but for questions)
-2. stop execution and ask human to answer questions if these topics blocks you; otherwise continue and ask for fullfilling answers after current execution
-3. if human will resume you or ask you to fullfill previuous changes, check answers and continue previously paused tasks
+See [INTEGRATION.md](INTEGRATION.md) for the quick-start checklist and
+[examples/consumer-repo](examples/consumer-repo) for concrete shapes.
 
-## Review Flow
-1. fetch review for given PR via gh
-2. store structured comments (only new, previously added in other files omit)
-3. create sub-issue (with <issue-id>-r<index> suffix, which means "revision X", index is just next int starting from 1)
-4. process like normal issue (but with full new name `<issue-id>-r<index>` instead of `<issue-id>`)
-5. generate answers for review
+## What Lotus Agents Does Not Require
+
+Lotus Agents does not require:
+
+- a specific issue tracker
+- a specific code host
+- a specific review system
+- a fixed repository layout
+- durable docs in every repository
+
+## About This Repository
+
+This repository defines Lotus Agents itself. It does not yet consume the full
+local execution flow internally. That self-hosting step can happen later once
+the contract is stable enough to reuse without caveats.

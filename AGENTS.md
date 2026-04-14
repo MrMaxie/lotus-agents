@@ -1,134 +1,210 @@
-# Lotus Agents — Runtime Rules
+# Lotus Agents - Runtime Contract
 
-## EXECUTION MODEL
+## Purpose
 
-All work MUST follow:
+Lotus Agents is a portable runtime contract, not a process framework.
 
-1. ARRANGE
-2. ACT
-3. ASSERT
+For every run, the contract should answer four questions:
 
----
+1. what the agent reads
+2. what counts as source of truth
+3. where local execution state belongs
+4. when the agent must avoid creating new structure
+
+This repository defines the Lotus Agents contract itself. It is not yet
+bootstrapped as a consuming repository, so do not assume that `.local/` exists
+here unless a human explicitly asks to initialize it.
+
+## Scope
+
+Lotus Agents does not require:
+
+- a specific issue tracker
+- a specific code host
+- a specific review system
+- a fixed repository layout beyond the configured paths
+- durable docs in every repository
+
+## Precedence
+
+When instructions or knowledge sources conflict, apply this order:
+
+1. explicit human instruction in the current run
+2. the configured local agents file, default `.local/AGENTS.md`
+3. `AGENTS.md`
+4. the active specs directory
+5. the latest 3 files from the active meetings directory
+6. the active local docs tree, but only when the committed docs tree does not
+   exist
+7. the codebase and current repository state
+
+## Path Resolution
+
+If `lotus.config.yaml` exists, use it before assuming default paths. Relative
+paths are resolved from the repository root.
+
+| Key | Default |
+| --- | --- |
+| `docs_root` | `docs` |
+| `specs_dir` | `docs/specs` |
+| `meetings_dir` | `docs/meetings` |
+| `local_root` | `.local` |
+| `local_agents_file` | `.local/AGENTS.md` |
+| `context_file` | `.local/context.md` |
+| `local_docs_root` | `.local/docs` |
+| `local_specs_dir` | `.local/docs/specs` |
+| `local_meetings_dir` | `.local/docs/meetings` |
+| `issues_dir` | `.local/issues` |
+| `issue_notes_dir` | `.local/issues-notes` |
+| `questions_dir` | `.local/questions` |
+| `runs_dir` | `.local/runs` |
+| `reviews_dir` | `.local/reviews` |
+| `pr_notes_dir` | `.local/pr-notes` |
+| `default_branch` | `auto` |
+
+When `default_branch` is `auto`, detect whether the repository uses `main` or
+`master`. If both exist, prefer the repository default branch.
 
 ## ARRANGE
 
-Agent MUST:
+Before acting, the agent MUST:
 
-1. Identify:
-   - base branch (default: main)
-   - issue-id
+1. resolve paths from `lotus.config.yaml` when present
+2. identify the base branch
+   - use the branch explicitly provided by the human when available
+   - otherwise use `default_branch` when it is set to a concrete branch name
+   - otherwise detect `main` or `master`
+3. identify the task shape
+   - issue-based work
+   - review-based work
+   - general run without an issue id
+4. identify whether the work is tied to an issue id
+   - source order: human input, branch name, local issue files
+   - if no issue id exists, continue as a general run
+5. inspect local context when available
+   - read the configured local agents file if it exists
+   - read the configured context file if it exists
+   - if an issue id exists, read `<issues_dir>/<issue-id>.md` if it exists
+6. resolve the active documentation source
+   - if `docs_root` exists, use `specs_dir` and `meetings_dir`
+   - otherwise, if `local_docs_root` exists, use `local_specs_dir` and
+     `local_meetings_dir`
+   - otherwise rely on the codebase, the current diff, and human input
+7. read meeting files deterministically
+   - read at most the latest 3 meeting files
+   - if meeting filenames begin with `YYYY-MM-DD`, sort descending by filename
+   - otherwise sort descending by modification time
+8. understand repository context
+   - inspect the diff against the base branch
+   - inspect existing code and repository patterns before changing anything
 
-2. Read:
-   - .local/context.md (if exists)
-   - .local/issues/<id>.md
+If `local_root` does not exist and the human did not ask to bootstrap it, skip
+local artifacts for that run instead of creating them.
 
-3. Documentation:
+### Task Profiles
 
-   IF docs/specs exists:
-     read as SOURCE OF TRUTH
+| Task shape | Required reads | Local writes when local execution memory is in use | Notes file | Question file | Stop when |
+| --- | --- | --- | --- | --- | --- |
+| `issue-based` | human instruction, local rules, context, issue file, active specs, latest meetings, diff | code or docs changes, issue notes, optional questions | `<issue_notes_dir>/<issue-id>.md` | `<questions_dir>/q<issue-id>.md` | blocking ambiguity, missing permissions, or missing human input |
+| `review-based` | issue-based inputs plus active review comments and prior revision artifacts when present | review file, review answers, revision issue file, revision issue notes, optional questions | `<issue_notes_dir>/<revision-id>.md` | `<questions_dir>/q<revision-id>.md` | blocking ambiguity, missing permissions, or missing human input |
+| `general run` | human instruction, local rules, context, active specs, latest meetings, diff | run log, optional questions | `<runs_dir>/<index>.md` | `<questions_dir>/q<index>.md` | blocking ambiguity, missing permissions, or missing human input |
 
-   IF docs/meetings exists:
-     read LAST 3 files ONLY
+## Naming and Identifiers
 
-4. Meetings interpretation:
-
-   - newest meeting has highest priority
-   - older meetings provide context
-   - decisions accumulate
-   - conflicts resolved in favor of newest
-
-5. Repo understanding:
-   - diff vs base branch
-   - patterns in code
-
----
+- `issue id` means a stable, repository-native task identifier taken from human
+  input, branch naming, or local issue files.
+- Preserve the issue id as written when it is filename-safe. When filesystem
+  rules make that unsafe, replace only illegal path characters with `-`.
+- `revision id` means `<issue-id>-r001`, `<issue-id>-r002`, and so on. Revision
+  indexes are zero-padded numeric values.
+- Non-issue helper indexes use zero-padded numeric values such as `001`, `002`,
+  `003`.
+- Issue and revision question files use `q<issue-id>.md` or
+  `q<revision-id>.md`.
+- Review comment identifiers inside review artifacts use `c1`, `c2`, `c3`, and
+  so on. Do not reuse `q1` because `q*` is reserved for human questions.
 
 ## ACT
 
 Agent MUST:
 
-1. Write progress:
-   - .local/issues-notes/<id>.md
+1. make minimal changes
+2. reuse existing logic and patterns
+3. avoid duplication
+4. write only the local artifacts implied by the active task profile or the
+   human request
+5. validate continuously against specs, repo conventions, and diff sanity
 
-2. Apply rules:
-   - minimal changes
-   - reuse existing logic
-   - no duplication
-
-3. Validate continuously:
-   - specs consistency
-   - diff sanity
-
----
+When a concrete issue id exists, the issue notes file is the primary execution
+note file. General run logs must not duplicate that role.
 
 ## ASSERT
 
 Agent MUST:
 
-1. Validate behavior vs specs
+1. validate behavior against the current source of truth
+2. reconcile code and docs when they drift
 
-2. SPEC UPDATE LOGIC:
+If implementation and spec differ:
 
-IF implementation != spec:
+- if the spec is correct, fix the code
+- if a durable edge case was discovered, update the spec, record the note in the
+  issue notes file or run log, and suggest a test
+- if the expected behavior changed, update the spec to harden the definition
 
-CASE 1:
-- spec correct → fix code
+Agent MUST NEVER modify meeting files.
 
-CASE 2:
-- edge case discovered →
-  - update spec
-  - add note
-  - suggest test
+## Docs Policy
 
-CASE 3:
-- expectation changed →
-  - update spec (harden definition)
+Documentation directories are created or bootstrapped only on explicit human
+intent.
 
-3. NEVER modify:
-   - docs/meetings/*
+Rules:
 
----
+- do not create the committed docs tree or the local docs tree on your own
+- if the human says only "generate docs", default to the committed docs tree
+- if the human explicitly asks for local-only docs, use the local docs tree
+- if the committed docs tree exists, ignore the local docs tree
+- if the committed docs tree does not exist but the local docs tree exists, use
+  the local docs tree
+- if neither exists, do not invent documentation structure; rely on the
+  codebase and current human guidance
 
-## DOCUMENTATION RULES
+The local docs tree mirrors the same semantics as the committed docs tree:
 
-### meetings/*
-- read-only
-- never edited
+- `specs` holds durable expectations for the active local workflow
+- `meetings` holds chronological local context and remains read-only
 
-### specs/*
-- modifiable ONLY IF:
-  - long-term relevance
-  - affects behavior
-  - reusable knowledge
+Durable behavior belongs in specs. One-off notes and temporary execution
+context belong in the configured local root.
 
-### DO NOT INCLUDE IN SPECS
-- UI text changes
-- one-off fixes
+## Optional Extensions
 
----
+Review workflow artifacts and PR notes are official optional extensions. They
+are part of the Lotus Agents system, but not every repository needs them.
 
-## QUESTIONS
+Rules:
 
-Agent SHOULD ask when:
+- repositories may omit `reviews_dir` and `pr_notes_dir` until needed
+- use review artifacts only for review-based work or explicit human requests
+- use PR notes only when the human asks for a PR description, PR notes, or a
+  user-facing change summary
 
-- ambiguity exists
-- missing constraints
-- conflicting meetings
+## Glossary
 
-Store in:
-- .local/clarifications/<id>.md
+- `durable knowledge`: reusable project truth that belongs in specs
+- `local execution memory`: machine-local operational state kept under the
+  configured local root
+- `bootstrap`: creating docs or local execution structure that did not already
+  exist
+- `general run`: work that has no concrete issue id
+- `issue-based work`: work tied to one issue id
+- `review-based work`: work tied to review feedback and a derived revision id
 
----
+## Restrictions
 
-## FALLBACK DOCS
-
-IF docs/ not available:
-- use .local/docs/*
-
----
-
-## RESTRICTIONS
-
-- DO NOT push commits
-- DO NOT auto-create PR
-- DO NOT fabricate answers
+- do not fabricate answers
+- do not push commits automatically
+- do not create pull requests automatically
+- do not modify meeting files
+- do not bootstrap docs or local execution memory without explicit human intent

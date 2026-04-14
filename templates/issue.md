@@ -1,0 +1,16 @@
+# Issue - <issue-id>
+
+## Goal
+...
+
+## Background
+...
+
+## Constraints
+- ...
+
+## Acceptance Criteria
+- ...
+
+## Open Questions
+- ...
