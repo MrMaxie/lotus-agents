@@ -397,8 +397,10 @@ Repeat the same pattern for any other skill file:
 
 Usually one of these:
 
-- `AGENTS_TO_COPY.md`
+- `AGENTS_TO_COPY.md` copied as `AGENTS.md`
 - selected sections merged into an existing `AGENTS.md`
+- `AGENTS_TO_COPY.md` copied as `AGENTS_ISSUE_FLOW.md` and referenced from an
+  existing `AGENTS.md`
 - optional skill files if you want repo-local skills
 
 You do not need setup scripts, config files, or a large starter pack.
