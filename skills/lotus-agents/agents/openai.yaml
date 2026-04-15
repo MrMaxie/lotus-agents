@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lotus Agents"
+  short_description: "Install and run the Lotus issue flow."
+  default_prompt: "Use $lotus-agents to apply the Lotus Agents flow to this repository."
+
+policy:
+  allow_implicit_invocation: true

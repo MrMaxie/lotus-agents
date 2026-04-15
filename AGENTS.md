@@ -1,9 +1,4 @@
-# Lotus Agents - Repository Guide For Agents
-
-This `AGENTS.md` is for agents working on the Lotus Agents repository itself.
-It is not the file humans are meant to copy into other repositories.
-
-The copyable artifact lives in `AGENTS_TO_COPY.md`.
+# Lotus Agents - Repository Contract
 
 ## What This Repository Is
 
@@ -13,7 +8,9 @@ The current product shape is:
 
 - `README.md` is the main human entrypoint
 - `AGENTS_TO_COPY.md` is the copyable flow artifact for consumer repos
-- `skills/` contains optional example skills
+- `skills/lotus-agents/` is the main installable skill package
+- `.codex-plugin/plugin.json` bundles that skill for native Codex plugin
+  installation
 
 ## What This Repository Is Not
 
@@ -28,12 +25,27 @@ Do not treat this repo as a consumer repository by default.
 When changing the contract or adoption story:
 
 1. keep `README.md` and `AGENTS_TO_COPY.md` aligned
-2. keep the model `.local`-first and copy-paste friendly
-3. do not reintroduce setup scripts, path config, or custom layout support
+2. keep `skills/lotus-agents/assets/AGENTS_TO_COPY.md` aligned with the root
+   copy
+3. keep the model `.local`-first and copy-paste friendly
+4. do not reintroduce setup scripts, path config, or custom layout support
    unless a human explicitly asks
-4. keep skills clearly optional
-5. treat `.local/templates/` as private helper material, not committed source of
-   truth in consumer repos
+5. keep skills clearly optional
+6. keep reusable templates in optional skill assets, not in the default
+   consumer `.local` contract
+
+## Write For The Actual Reader
+
+Keep each artifact scoped to the reader that will actually use it:
+
+- `README.md` is for humans adopting or understanding the repo
+- `AGENTS.md`, `AGENTS_TO_COPY.md`, and `skills/` are for agents executing work
+- keep copy/merge/install/setup guidance in `README.md`, not in machine-facing
+  workflow files
+- keep machine-facing files operational; avoid self-descriptions such as "this
+  file is for...", "copy this file as...", or other README-style narration
+- if a file is meant to be executed or followed by an agent, write only the
+  instructions that matter at execution time
 
 ## What To Update Together
 
@@ -41,6 +53,7 @@ If you change naming, paths, or adoption flow, review at least:
 
 - `README.md`
 - `AGENTS_TO_COPY.md`
+- `skills/lotus-agents/assets/AGENTS_TO_COPY.md`
 - any relevant files in `skills/`
 
 ## Source Of Truth For This Repo

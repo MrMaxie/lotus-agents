@@ -1,23 +1,24 @@
-# SKILL: COMMIT_TITLE
+# Commit Title Workflow
 
-Optional skill. It can live in the repo or be installed globally on the
-machine.
+Use this workflow when proposing concise commit titles from the current change.
 
-## INPUT
+## Input
+
 - diff
 - issue
 - specs when the repo keeps durable expectations in `docs/specs/`; otherwise omit
 
-## OUTPUT
+## Output
+
 - 1-3 commit title proposals
 
-## RULES
+## Rules
 
 - follow repo patterns
 - include intent, not implementation
 - concise
 
-## FORMAT
+## Format
 
 <type>: <what changed>
 

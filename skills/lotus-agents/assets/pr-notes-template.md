@@ -1,0 +1,19 @@
+# PR Notes - <id>
+
+## Summary
+...
+
+## User-Visible Changes
+- ...
+
+## Relevant Refactors
+- ...
+
+## Risks and Follow-Ups
+- ...
+
+## Screenshots
+- ...
+
+## Video
+- ...

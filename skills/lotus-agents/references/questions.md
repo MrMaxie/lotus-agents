@@ -1,14 +1,8 @@
-# SKILL: QUESTIONS
+# Questions Workflow
 
-Optional skill. It can live in the repo or be installed globally on the
-machine.
+Use this workflow when clarification needs to be captured in `.local/`.
 
-## PURPOSE
-
-Maintain the human clarification loop for issue-based work, review-based work,
-and general runs.
-
-## FILES
+## Output Files
 
 - `.local/questions/q<issue-id>.md`
 - `.local/questions/q<revision-id>.md`
@@ -18,7 +12,7 @@ and general runs.
 `q<revision-id>.md` matches the main local artifact contract when review-based
 work creates a revision id such as `<issue-id>-r001`.
 
-## RULES
+## Rules
 
 - use `q<issue-id>.md` when the work is tied to an existing issue id
 - use `q<revision-id>.md` when review-based work created a revision id
@@ -29,7 +23,7 @@ work creates a revision id such as `<issue-id>-r001`.
 - if the question does not block execution, continue with an explicit assumption
   recorded in notes or the run log
 
-## FORMAT
+## Format
 
 ```md
 # Questions - q001
@@ -43,7 +37,7 @@ work creates a revision id such as `<issue-id>-r001`.
 ...
 ```
 
-## USAGE
+## Typical Use
 
 - during planning
 - during ambiguity

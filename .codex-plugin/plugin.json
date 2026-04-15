@@ -1,0 +1,38 @@
+{
+  "name": "lotus-agents",
+  "version": "0.1.0",
+  "description": "Bundle the Lotus Agents `.local`-first issue flow as a reusable Codex skill.",
+  "author": {
+    "name": "MrMaxie",
+    "url": "https://github.com/MrMaxie"
+  },
+  "homepage": "https://github.com/MrMaxie/lotus-agents",
+  "repository": "https://github.com/MrMaxie/lotus-agents",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "skills",
+    "agents",
+    "workflow",
+    "local-first"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lotus Agents",
+    "shortDescription": "Install the Lotus `.local` issue flow.",
+    "longDescription": "Bundle the Lotus Agents skill for adopting and operating a `.local`-first issue workflow across repositories.",
+    "developerName": "MrMaxie",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/MrMaxie/lotus-agents",
+    "defaultPrompt": [
+      "Apply Lotus Agents to this repository.",
+      "Merge Lotus Agents into my existing AGENTS.md.",
+      "Set up Lotus issue flow as AGENTS_ISSUE_FLOW.md."
+    ],
+    "brandColor": "#1F7A6B"
+  }
+}

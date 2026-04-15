@@ -1,14 +1,14 @@
 # Lotus Agents
 
-Small copy-paste issue flow for human-agent work.
+Small `.local`-first issue flow for human-agent work.
 
+- one main installable skill: `$lotus-agents`
+- native Codex plugin packaging for the same skill
+- `AGENTS_TO_COPY.md` remains the human copy/merge helper
 - `.local/` holds private execution state
-- `docs/` is optional and committed when the repo wants durable shared docs
-- `AGENTS.md` in this repo explains the project to agents working here
-- `AGENTS_TO_COPY.md` is the flow artifact you copy into consumer repos
+- `docs/` is optional and committed durable truth
 - no setup scripts
 - no path config
-- no required skills inside the repo
 
 ## Why This Exists
 
@@ -23,40 +23,73 @@ Lotus Agents narrows that down to one convention.
 
 ## What Lives In This Repo
 
-- `README.md`: main human entrypoint, adoption guide, and starter snippets
+- `README.md`: main human entrypoint and adoption guide
 - `AGENTS.md`: repo-specific instructions for agents working on Lotus Agents
-- `AGENTS_TO_COPY.md`: the file meant for copy/merge/reference in other repos
-- `skills/`: optional example skills
+- `AGENTS_TO_COPY.md`: human-facing copy/merge helper for consumer repos
+- `skills/lotus-agents/`: the main installable skill package
+- `.codex-plugin/plugin.json`: native Codex plugin manifest bundling
+  `./skills/`
 
-## Core Shape In A Consumer Repo
+The root `AGENTS_TO_COPY.md` mirrors
+`skills/lotus-agents/assets/AGENTS_TO_COPY.md`. When the flow changes, update
+both copies together.
 
-```text
-repo/
-  AGENTS.md
-  AGENTS_ISSUE_FLOW.md        # optional if AGENTS already exists
-  docs/                       # optional, committed
-    specs/
-    meetings/
-  .local/                     # private, local, usually ignored
-    AGENTS.md                 # optional machine-local overrides
-    context.md
-    templates/
-    issues/
-    issues-notes/
-    questions/
-    runs/
-    reviews/
-    pr-notes/
+## Install
+
+### Open Skills CLI
+
+Install the repo as a skill collection and pull in the main entrypoint skill:
+
+```bash
+npx skills add https://github.com/MrMaxie/lotus-agents --skill lotus-agents
 ```
 
-Rules of thumb:
+After installation, restart Codex so the new skill is picked up.
 
-- create only the `.local/` subdirectories you actually use
-- keep durable shared knowledge in `docs/`
-- keep operational scratch state in `.local/`
-- do not introduce alternate folder layouts just to "configure" names
+> [!TIP]
+> If `$lotus-agents` does not appear where you expect it, the installer may
+> have targeted a different agent or only the current repo. In that case, rerun
+> the install with explicit Codex and global flags so the skill is available to
+> Codex across repositories.
 
-## Three Adoption Paths
+### Native Codex Plugin
+
+This repo also ships a native Codex plugin manifest at
+`.codex-plugin/plugin.json`.
+
+Use that plugin packaging path when you want to distribute Lotus Agents through
+Codex plugin surfaces instead of the open skills CLI. The manifest bundles the
+same `./skills/` directory, so the install surface changes without changing the
+workflow itself.
+
+This repo intentionally does not ship a marketplace file. Add the plugin to
+your own repo or personal marketplace when you want to install it through the
+plugin path.
+
+## Use The Skill
+
+`$lotus-agents` is the main entrypoint.
+
+Use it when you want Codex to:
+
+- add the Lotus Agents flow to a repo with no `AGENTS.md`
+- merge the flow into an existing `AGENTS.md`
+- install the flow as `AGENTS_ISSUE_FLOW.md` and wire a reference into the
+  existing `AGENTS.md`
+- work inside a repo that already uses the Lotus `.local` issue flow
+- bootstrap `.local/pr-notes/<id>.md` from the bundled template
+
+Example prompts:
+
+- `Use $lotus-agents to add the Lotus Agents flow to this repo.`
+- `Use $lotus-agents to merge the Lotus issue flow into my existing AGENTS.md.`
+- `Use $lotus-agents to install the flow as AGENTS_ISSUE_FLOW.md and update AGENTS.md.`
+- `Use $lotus-agents to draft .local/pr-notes/123.md from the template.`
+
+## Manual Adoption
+
+If you do not want to install the skill, the flow stays copy-paste friendly.
+Use `AGENTS_TO_COPY.md` directly.
 
 ### 1. Repo Has No `AGENTS.md`
 
@@ -74,7 +107,6 @@ repo/
   AGENTS.md
   .local/
     context.md
-    templates/
     issues/
     issues-notes/
 ```
@@ -111,6 +143,33 @@ If the files conflict, this `AGENTS.md` wins unless it explicitly says
 otherwise.
 ```
 
+## Core Shape In A Consumer Repo
+
+```text
+repo/
+  AGENTS.md
+  AGENTS_ISSUE_FLOW.md        # optional if AGENTS already exists
+  docs/                       # optional, committed
+    specs/
+    meetings/
+  .local/                     # private, local, usually ignored
+    AGENTS.md                 # optional machine-local overrides
+    context.md
+    issues/
+    issues-notes/
+    questions/
+    runs/
+    reviews/
+    pr-notes/
+```
+
+Rules of thumb:
+
+- create only the `.local/` subdirectories you actually use
+- keep durable shared knowledge in `docs/`
+- keep operational scratch state in `.local/`
+- do not introduce alternate folder layouts just to "configure" names
+
 ## Fuller `.local`-First Shape
 
 A repo that leans fully into the flow often grows into this shape:
@@ -125,7 +184,6 @@ repo/
   .local/
     AGENTS.md
     context.md
-    templates/
     issues/
     issues-notes/
     questions/
@@ -157,7 +215,6 @@ state belongs.
 
 - `.local/AGENTS.md`: machine-local overrides only
 - `.local/context.md`: resume hints and local context
-- `.local/templates/`: private helper snippets
 - `.local/issues/`: issue inputs for both `issue-id` and `revision-id`
 - `.local/issues-notes/`: working notes and decisions for both `issue-id` and
   `revision-id`
@@ -166,6 +223,10 @@ state belongs.
 - `.local/runs/`: non-issue run logs
 - `.local/reviews/`: review artifacts
 - `.local/pr-notes/`: user-facing change summary drafts
+
+Reusable templates are not part of the default `.local` contract. When a
+template should travel with a workflow, keep it as an asset of an optional
+skill so it can be installed together with that skill.
 
 If a repo does not have `.local/` yet, do not invent it by surprise. Create it
 when the human wants the flow.
@@ -374,44 +435,19 @@ Blocking questions for a review revision go in
 
 Skills are optional.
 
-- they can live in the repo
-- they can be installed on the machine instead
 - the flow should still make sense without them
-
-This repo keeps a few example skills, but they are not part of the required
-copy pack.
-
-### Install A Skill In Codex
-
-Codex looks for skills under `$CODEX_HOME/skills/<skill-name>/SKILL.md`.
-
-PowerShell example:
-
-```powershell
-New-Item -ItemType Directory -Force "$env:CODEX_HOME\\skills\\questions" | Out-Null
-Copy-Item ".\\skills\\QUESTIONS.md" "$env:CODEX_HOME\\skills\\questions\\SKILL.md"
-```
-
-Bash example:
-
-```bash
-mkdir -p "$CODEX_HOME/skills/questions"
-cp ./skills/QUESTIONS.md "$CODEX_HOME/skills/questions/SKILL.md"
-```
-
-Repeat the same pattern for any other skill file:
-
-- choose a folder name under `$CODEX_HOME/skills/`
-- copy the chosen file there as `SKILL.md`
+- this repo now ships one main installable skill: `lotus-agents`
+- the skill carries reusable templates and adoption assets with it
+- the human fallback remains `AGENTS_TO_COPY.md`
 
 ## What To Copy From This Repo
 
 Usually one of these:
 
+- install `$lotus-agents` and let it apply the right scenario
 - `AGENTS_TO_COPY.md` copied as `AGENTS.md`
 - selected sections merged into an existing `AGENTS.md`
 - `AGENTS_TO_COPY.md` copied as `AGENTS_ISSUE_FLOW.md` and referenced from an
   existing `AGENTS.md`
-- optional skill files if you want repo-local skills
 
 You do not need setup scripts, config files, or a large starter pack.

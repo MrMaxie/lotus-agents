@@ -1,20 +1,12 @@
-# SKILL: REVIEW_PROCESS
+# Review Process Workflow
 
-Optional skill. It can live in the repo or be installed globally on the
-machine.
+Use this workflow when local execution memory is in use for review-based work.
 
-## PURPOSE
-
-Optional example skill for review-based work.
-
-When local execution memory is in use, this skill follows the main local
-artifact contract for review revisions.
-
-## INPUT
+## Input
 
 - review comments from the active review system
 
-## OUTPUT
+## Output
 
 When local execution memory is in use:
 
@@ -31,9 +23,9 @@ and so on.
 
 Those revision-scoped issue files match the main local artifact contract when a
 repo uses this review flow. They are not introduced as a private naming
-convention by this skill alone.
+convention by this workflow alone.
 
-## STRUCTURE
+## Structure
 
 ### review file
 
@@ -66,7 +58,7 @@ convention by this skill alone.
 ...
 ```
 
-## FLOW
+## Flow
 
 1. collect review comments
 2. store only new comments that are not already captured in prior review files
@@ -75,7 +67,7 @@ convention by this skill alone.
 5. use `q<revision-id>.md` for blocking questions when questions are needed
 6. update the answers file after the fixes are done
 
-## PR NOTES EXTENSION
+## PR Notes Extension
 
 When generating PR notes after review:
 

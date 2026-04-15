@@ -1,21 +1,20 @@
-# SKILL: SPEC_SYNC
+# Spec Sync Workflow
 
-Optional skill. It can live in the repo or be installed globally on the
-machine.
+Use this workflow only when the repo keeps durable expectations in `docs/specs/`.
 
-## APPLIES WHEN
+## Applies When
 
 - `docs/specs/` exists
 - `docs/meetings/` may exist, but is optional input
 
-## INPUT
+## Input
 
 - `docs/specs/`
 - up to the last 3 files from `docs/meetings/` when present
 - codebase
 - issue notes or run log when present
 
-## RULES
+## Rules
 
 - if `docs/specs/` does not exist, stop and report `not applicable`
 - if `docs/meetings/` does not exist, continue without meeting input
@@ -28,7 +27,7 @@ machine.
 - for edge-case drift, update specs and record the note
 - for expectation drift, update specs and record the durable change
 
-## LOGIC
+## Logic
 
 1. read `docs/specs/`
 2. read up to the last 3 meeting files when `docs/meetings/` exists
@@ -51,7 +50,7 @@ expectation:
 - update spec definition
 - record the note when it changes durable expectations
 
-## OUTPUT
+## Output
 
 - `not applicable` when `docs/specs/` is absent
 - updated code when bug drift is confirmed
