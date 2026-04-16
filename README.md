@@ -35,11 +35,7 @@ The repository also exposes a native plugin manifest in
 To refresh every Lotus skill to the newest published version, run:
 
 ```bash
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-init
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-spec-init
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-meeting-promote
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-pr-intake
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents lotus-init lotus-spec-init lotus-meeting-promote lotus-pr-intake
 ```
 
 ## How It Works
