@@ -52,15 +52,20 @@ repo/
 ```
 
 `.local/` is the private working layer. It should usually be ignored by Git.
+For Lotus workflow state, local artifacts are the operational source of truth;
+external providers are optional reference surfaces.
 
 `.docs/` is the project layer. Keep specs, meeting notes, and reusable patterns
 there. You can commit it or keep it local-only, depending on how you want to
-run the project.
+run the project. During initialization, if you do not say which version you
+want, Lotus should prefer hidden local-only `.docs/` for mature repositories
+and committed `.docs/` for greenfield or bootstrap-only repositories.
 
 ## Installable Skills
 
 - **`lotus-agents`** - entrypoint skill that routes Lotus work to the right
-  flow: setup, spec bootstrap, meeting promotion, or PR/review/CI intake.
+  flow: setup, spec bootstrap, meeting promotion, or local-first
+  issue/PR/review/CI intake.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents
@@ -70,12 +75,13 @@ run the project.
   # Example prompts for the agent
   "Use $lotus-agents and initialize the Lotus workflow in this repo."
   "Use $lotus-agents and bootstrap .docs/spec for the current project."
-  "Use $lotus-agents and pull this PR review into Lotus artifacts."
+  "Use $lotus-agents and prepare Lotus artifacts for the existing local work on issue 456."
   ```
 
 - **`lotus-init`** - creates the base `.local/` + `.docs/` structure, seeds
   `.local/AGENTS.md`, `.docs/AGENTS.md`, and `.docs/meetings/_draft.md`, and
-  applies ignore rules for `.local/` plus optional local-only `.docs/`.
+  chooses a default `.docs/` mode when you do not specify one: hidden
+  local-only for mature repos, committed for early or bootstrap repos.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents --skill lotus-init
@@ -85,6 +91,7 @@ run the project.
   # Example prompts for the agent
   "Use $lotus-init in this repo. Keep .docs committed."
   "Use $lotus-init here, but keep .docs local-only for now and ignore it too."
+  "Use $lotus-init and choose the default .docs mode from the current repo state."
   "Use $lotus-init and create .docs/practices as well."
   ```
 
@@ -119,7 +126,8 @@ run the project.
 
 - **`lotus-pr-intake`** - gathers issue, PR, review, and CI work into Lotus
   artifacts under `.local/issues/`, `.local/issues-notes/`, `.local/reviews/`,
-  and `.local/pr-notes/`.
+  and `.local/pr-notes/`, treating those files as the operational source of
+  truth and using remote providers only as optional supporting context.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents --skill lotus-pr-intake
@@ -127,8 +135,10 @@ run the project.
 
   ```sh
   # Example prompts for the agent
+  "Use $lotus-pr-intake for the existing Lotus files for issue 456."
   "Use $lotus-pr-intake for PR #123 and prepare the Lotus artifacts."
   "Use $lotus-pr-intake for issue #456 and record assumptions in issue notes."
+  "Use $lotus-pr-intake for issue #456, but only fetch GitHub context if the local files are missing what you need."
   "Use $lotus-pr-intake for this failed CI run and write PR notes for the user-facing changes."
   ```
 
@@ -152,7 +162,9 @@ If you do not want to install the skills, you can adopt Lotus manually:
 4. create `.docs/meetings/_draft.md` from
    `lotus-init/assets/meetings-draft-template.md`
 5. add `.local/` to `.git/info/exclude` or `.gitignore`
-6. decide whether `.docs/` should be committed or local-only
+6. decide whether `.docs/` should be committed or local-only; when in doubt,
+   prefer local-only for mature repos and committed for greenfield or
+   bootstrap-only repos
 
 ## What Is In This Repo
 

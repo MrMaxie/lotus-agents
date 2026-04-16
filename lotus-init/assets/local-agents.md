@@ -23,6 +23,16 @@
 ## Working Rules
 
 - `.local/` is private execution state
+- Lotus local files are the operational source of truth for current work
+- remote systems may provide supporting context, but they are not the canonical
+  Lotus state
+- shared IDs between local and remote artifacts do not make them the same
+  object
+- do not synchronize local artifacts with remote state unless the human
+  explicitly asks
+- if remote context is needed, prefer existing local files first and fetch
+  externally only when the needed context is missing or the human explicitly
+  requests a remote source
 - do not store durable project truth in `.local/`
 - do not create `context.md`, `questions/`, or `runs/`
 - if ambiguity blocks execution, ask the human

@@ -32,7 +32,7 @@
     "defaultPrompt": [
       "Use Lotus Agents to initialize .local and .docs.",
       "Bootstrap .docs/spec for this repository.",
-      "Pull PR review and CI work into Lotus files."
+      "Prepare Lotus files for review or CI work, using remote context only when needed."
     ],
     "brandColor": "#1F7A6B"
   }

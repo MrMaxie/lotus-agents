@@ -1,6 +1,6 @@
 ---
 name: lotus-init
-description: Initialize the Lotus `.local` + `.docs` workflow in a repository. Use when Codex needs to add the base Lotus structure, seed `.local/AGENTS.md` and `.docs/AGENTS.md`, create `.docs/spec`, `.docs/meetings/_draft.md`, `.docs/templates`, and set ignore rules for `.local` plus optional local-only `.docs`.
+description: Initialize the Lotus `.local` + `.docs` workflow in a repository. Use when Codex needs to add the base Lotus structure, seed `.local/AGENTS.md` and `.docs/AGENTS.md`, create `.docs/spec`, `.docs/meetings/_draft.md`, `.docs/templates`, and choose whether `.docs` should stay committed or local-only.
 ---
 
 # Lotus Init
@@ -21,7 +21,12 @@ Use this skill when a repository needs the base Lotus setup.
    - `.docs/templates/`
    - `.docs/practices/`
 2. check current ignore rules for `.local/` and `.docs/`
-3. read root `AGENTS.md` when present for host repo constraints, but do not
+3. inspect whether the repository looks mature or still bootstrap-only:
+   - mature: substantial existing product code, signs of ongoing maintenance,
+     or a repo that has clearly lived for a while
+   - early: very few files, mostly example or starter code, or almost no real
+     product code yet
+4. read root `AGENTS.md` when present for host repo constraints, but do not
    edit it unless the human explicitly asks
 
 ## Apply
@@ -45,10 +50,19 @@ Use this skill when a repository needs the base Lotus setup.
 
 - ensure `.local/` is ignored via `.git/info/exclude`, `.gitignore`, or another
   repo-local ignore surface
-- ignore `.docs/` only when the user explicitly wants Lotus docs to stay
-  local-only
-- when the user has not said whether `.docs/` should stay local-only, ask
-  before ignoring it
+- if the user has already said whether `.docs/` should stay committed or
+  local-only, follow that
+- if the repo already has meaningful code and the agent can ask a short
+  clarifying question, ask which version the human prefers
+- if the repo already has meaningful code and the agent cannot ask or should
+  not block on the question, default to hidden `.docs/`:
+  - keep `.docs/` local-only
+  - ensure `.docs/` is ignored
+  - mention that the human can ask to unhide or commit `.docs/` later
+- if the repo is still early, mostly bootstrap, example-heavy, or almost
+  empty, default to committed `.docs/`:
+  - do not ignore `.docs/`
+  - mention that the human can ask to hide `.docs/` later
 
 ## Operating Rules
 

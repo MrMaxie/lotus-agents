@@ -1,6 +1,6 @@
 ---
 name: lotus-agents
-description: Route Lotus workflow tasks to the right `.local` + `.docs` skill. Use when Codex needs to initialize Lotus flow, bootstrap `.docs/spec`, promote `.docs/meetings/_draft.md`, or normalize issue, PR, review, and CI work into Lotus artifacts.
+description: Route Lotus workflow tasks to the right `.local` + `.docs` skill. Use when Codex needs to initialize Lotus flow, bootstrap `.docs/spec`, promote `.docs/meetings/_draft.md`, or normalize local issue, PR, review, and CI work into Lotus artifacts with optional external references.
 ---
 
 # Lotus Agents
@@ -21,8 +21,11 @@ Use this skill as the entrypoint for the Lotus collection.
 - do not treat root `AGENTS.md` as the default Lotus adoption surface
 - prefer `.local/AGENTS.md` and `.docs/AGENTS.md`
 - treat `.local/` as private execution state
+- treat Lotus files as the source of truth for Lotus workflow state
 - treat `.docs/` as durable project guidance; whether it is committed depends on
-  user intent
+  user intent, and when init gets no explicit preference, on repo maturity
+- use external systems such as GitHub or Jira as optional supporting context,
+  not as the canonical Lotus state
 - do not create `AGENTS_TO_COPY.md`, `AGENTS_ISSUE_FLOW.md`, `questions`,
   `runs`, or `context.md`
 - when a repo already uses Lotus, preserve its existing Lotus artifacts unless
