@@ -4,35 +4,35 @@
   <img src="./assets/logo.webp" alt="Lotus Agents logo" width="220">
 </p>
 
-Lotus Agents to prosty sposób na uporządkowanie pracy człowieka i agenta w repo.
-Zamiast wrzucać wszystko do jednego miejsca, rozdziela prywatne notatki robocze
-od trwałych ustaleń projektu:
+Lotus Agents is a simple way to structure human-agent work in a repository.
+Instead of putting everything in one place, it separates private working notes
+from durable project guidance:
 
-- `.local/` na lokalną pracę agenta
-- `.docs/` na to, co warto zachować jako wiedzę o projekcie
+- `.local/` for the agent's local working state
+- `.docs/` for project knowledge worth keeping
 
-## Szybki start
+## Quick Start
 
-Zainstaluj główny skill:
+Install the main skill:
 
 ```bash
 npx skills add https://github.com/MrMaxie/lotus-agents --skill lotus-agents
 ```
 
-Jeśli chcesz od razu wystartować setup repo:
+If you want to set up the repository immediately:
 
 ```bash
 npx skills add https://github.com/MrMaxie/lotus-agents --skill lotus-init
 ```
 
-Po instalacji zrestartuj Codex.
+Restart Codex after installation.
 
-Repo wystawia też natywny manifest pluginu w
-`.codex-plugin/plugin.json`, jeśli wolisz ten sposób instalacji.
+The repository also exposes a native plugin manifest in
+`.codex-plugin/plugin.json` if you prefer that installation path.
 
-## Jak to działa
+## How It Works
 
-Model jest celowo mały:
+The model is intentionally small:
 
 ```text
 repo/
@@ -48,37 +48,38 @@ repo/
     meetings/
       _draft.md
     templates/
-    practices/   # opcjonalnie
+    practices/   # optional
 ```
 
-`.local/` to prywatna warstwa robocza. Zwykle powinna być ignorowana przez Git.
+`.local/` is the private working layer. It should usually be ignored by Git.
 
-`.docs/` to warstwa projektu. Trzymasz tam spec, notatki ze spotkań i wzorce
-przydatne w danym repo. Możesz ją commitować albo zostawić lokalnie, zależnie od
-tego jak chcesz prowadzić projekt.
+`.docs/` is the project layer. Keep specs, meeting notes, and reusable patterns
+there. You can commit it or keep it local-only, depending on how you want to
+run the project.
 
-## Jakich skilli używać
+## Which Skills To Use
 
 - `$lotus-agents`:
-  punkt wejścia, gdy chcesz żeby Codex sam dobrał właściwy flow
+  entrypoint when you want Codex to choose the right Lotus flow
 - `$lotus-init`:
-  zakłada bazowy układ `.local/` i `.docs/`
+  creates the base `.local/` and `.docs/` layout
 - `$lotus-spec-init`:
-  start dla `.docs/spec/`
+  starts `.docs/spec/`
 - `$lotus-meeting-promote`:
-  zamienia `.docs/meetings/_draft.md` w uporządkowaną notatkę ze spotkania
+  turns `.docs/meetings/_draft.md` into a structured meeting note
 - `$lotus-pr-intake`:
-  zbiera issue, PR, review i CI do artefaktów Lotus
+  collects issue, PR, review, and CI work into Lotus artifacts
 
-Jeśli nie wiesz od czego zacząć, zacznij od `$lotus-agents` albo `$lotus-init`.
+If you are not sure where to start, begin with `$lotus-agents` or
+`$lotus-init`.
 
-## Adopcja ręczna
+## Manual Adoption
 
-Jeśli nie chcesz instalować skilli, możesz wdrożyć Lotus ręcznie:
+If you do not want to install the skills, you can adopt Lotus manually:
 
-1. skopiuj `lotus-init/assets/local-agents.md` do `.local/AGENTS.md`
-2. skopiuj `lotus-init/assets/docs-agents.md` do `.docs/AGENTS.md`
-3. utwórz katalogi:
+1. copy `lotus-init/assets/local-agents.md` to `.local/AGENTS.md`
+2. copy `lotus-init/assets/docs-agents.md` to `.docs/AGENTS.md`
+3. create these directories:
    - `.local/issues/`
    - `.local/issues-notes/`
    - `.local/reviews/`
@@ -86,23 +87,23 @@ Jeśli nie chcesz instalować skilli, możesz wdrożyć Lotus ręcznie:
    - `.docs/spec/`
    - `.docs/meetings/`
    - `.docs/templates/`
-4. utwórz `.docs/meetings/_draft.md` z
+4. create `.docs/meetings/_draft.md` from
    `lotus-init/assets/meetings-draft-template.md`
-5. dodaj `.local/` do `.git/info/exclude` albo `.gitignore`
-6. zdecyduj, czy `.docs/` ma być commitowane, czy lokalne
+5. add `.local/` to `.git/info/exclude` or `.gitignore`
+6. decide whether `.docs/` should be committed or local-only
 
-## Co jest w repo
+## What Is In This Repo
 
-Najważniejsze rzeczy:
+The most important pieces are:
 
 - `README.md`:
-  szybkie wejście dla człowieka
+  the main human entrypoint
 - `AGENTS.md`:
-  zasady pracy w tym repo
+  working rules for this repository
 - `lotus-*/`:
-  właściwe skille i ich assety
+  the actual skills and their assets
 
-Jeśli chcesz wejść w szczegóły, czytaj:
+If you want the details, read:
 
-- `AGENTS.md` dla zasad repo
-- `lotus-*/SKILL.md` dla zachowania konkretnych skilli
+- `AGENTS.md` for repository rules
+- `lotus-*/SKILL.md` for the behavior of each skill
