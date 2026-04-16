@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lotus Init"
+  short_description: "Initialize the Lotus .local + .docs flow."
+  default_prompt: "Use $lotus-init to add the Lotus .local + .docs workflow to this repository."
+
+policy:
+  allow_implicit_invocation: true

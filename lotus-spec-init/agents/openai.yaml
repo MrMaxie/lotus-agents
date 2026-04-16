@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lotus Spec Init"
+  short_description: "Bootstrap .docs/spec."
+  default_prompt: "Use $lotus-spec-init to create the first Lotus spec file in this repository."
+
+policy:
+  allow_implicit_invocation: true

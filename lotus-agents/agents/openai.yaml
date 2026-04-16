@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lotus Agents"
+  short_description: "Route Lotus setup and operating tasks."
+  default_prompt: "Use $lotus-agents to choose and apply the right Lotus workflow in this repository."
+
+policy:
+  allow_implicit_invocation: true

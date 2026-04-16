@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lotus PR Intake"
+  short_description: "Normalize issue, PR, review, and CI work."
+  default_prompt: "Use $lotus-pr-intake to pull the current PR, review, or CI work into Lotus artifacts."
+
+policy:
+  allow_implicit_invocation: true

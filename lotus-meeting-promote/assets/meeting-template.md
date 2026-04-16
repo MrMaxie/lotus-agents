@@ -1,0 +1,16 @@
+# Meeting - <date>
+
+## Summary
+...
+
+## Decisions
+- ...
+
+## Requirements
+- ...
+
+## Questions
+- ...
+
+## Follow-Ups
+- ...

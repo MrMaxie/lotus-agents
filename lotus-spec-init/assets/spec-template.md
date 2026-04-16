@@ -1,0 +1,19 @@
+# Project Target State
+
+## Summary
+...
+
+## Product Expectations
+- ...
+
+## Technical Expectations
+- ...
+
+## Constraints
+- ...
+
+## Non-Goals
+- ...
+
+## Open Questions
+- ...

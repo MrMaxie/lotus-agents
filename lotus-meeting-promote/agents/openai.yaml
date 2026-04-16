@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lotus Meeting Promote"
+  short_description: "Promote .docs meeting drafts."
+  default_prompt: "Use $lotus-meeting-promote to turn .docs/meetings/_draft.md into a dated meeting note."
+
+policy:
+  allow_implicit_invocation: true
