@@ -1,15 +1,19 @@
-# Project Target State
+# Spec TOC
 
 ## Summary
 ...
 
-## Product Expectations
-- ...
+## Entity Docs
+- Add one linked file per named entity when it needs durable context.
+- Call out code-facing names exactly as used and note the context for each one.
 
-## Technical Expectations
-- ...
+## Flow Docs
+- Add one linked file per flow or bounded behavior when it needs durable
+  context.
+- Cross-link related entities, constraints, and files when that keeps context
+  explicit.
 
-## Constraints
+## Shared Constraints
 - ...
 
 ## Non-Goals

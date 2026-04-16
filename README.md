@@ -30,6 +30,18 @@ Restart Codex after installation.
 The repository also exposes a native plugin manifest in
 `.codex-plugin/plugin.json` if you prefer that installation path.
 
+## Update All Skills
+
+To refresh every Lotus skill to the newest published version, run:
+
+```bash
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-init
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-spec-init
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-meeting-promote
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-pr-intake
+```
+
 ## How It Works
 
 The model is intentionally small:
@@ -45,10 +57,12 @@ repo/
   .docs/
     AGENTS.md
     spec/
+      _toc.md    # when the branch has linked subfiles
     meetings/
       _draft.md
     templates/
     practices/   # optional
+      _toc.md    # when the branch has linked subfiles
 ```
 
 `.local/` is the private working layer. It should usually be ignored by Git.
@@ -60,6 +74,10 @@ there. You can commit it or keep it local-only, depending on how you want to
 run the project. During initialization, if you do not say which version you
 want, Lotus should prefer hidden local-only `.docs/` for mature repositories
 and committed `.docs/` for greenfield or bootstrap-only repositories.
+Use `_toc.md` as the branch index in `.docs/spec/` and `.docs/practices/` when
+those branches split into subfiles. Prefer small linked entity docs over one
+large narrative page, keep them concise and in English, and call out code-facing
+names exactly as used together with the context they belong to.
 
 ## Installable Skills
 
@@ -95,8 +113,9 @@ and committed `.docs/` for greenfield or bootstrap-only repositories.
   "Use $lotus-init and create .docs/practices as well."
   ```
 
-- **`lotus-spec-init`** - bootstraps or refreshes `.docs/spec/` with the first
-  durable target-state spec or another Lotus-style spec starter.
+- **`lotus-spec-init`** - bootstraps or refreshes `.docs/spec/` with an
+  index-first Lotus spec starter and linked entity docs when the spec needs to
+  branch.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents --skill lotus-spec-init
@@ -106,6 +125,7 @@ and committed `.docs/` for greenfield or bootstrap-only repositories.
   # Example prompts for the agent
   "Use $lotus-spec-init and create the first target-state spec for this repo."
   "Use $lotus-spec-init and follow the existing naming pattern in .docs/spec."
+  "Use $lotus-spec-init and split the spec into linked entity docs when the topics are clearly separate."
   "Use $lotus-spec-init, but prefer the local .docs/templates/spec.md template."
   ```
 

@@ -5,9 +5,11 @@
 1. explicit human instruction
 2. `.local/AGENTS.md`
 3. `.docs/AGENTS.md`
-4. relevant files in `.docs/spec/`
+4. `.docs/spec/_toc.md` when present, then the relevant linked files in
+   `.docs/spec/`
 5. up to the latest 3 dated files from `.docs/meetings/`
-6. relevant files in `.docs/practices/`
+6. `.docs/practices/_toc.md` when present, then the relevant linked files in
+   `.docs/practices/`
 7. the codebase and current diff
 
 ## Local Artifacts
@@ -34,6 +36,10 @@
   externally only when the needed context is missing or the human explicitly
   requests a remote source
 - do not store durable project truth in `.local/`
+- treat linked entity docs under `.docs/spec/` and `.docs/practices/` as the
+  durable context surface for understanding the codebase
+- prefer docs that keep names explicit, concise, in English, and anchored to
+  the code-facing context they describe
 - do not create `context.md`, `questions/`, or `runs/`
 - if ambiguity blocks execution, ask the human
 - if ambiguity does not block execution, continue with an explicit assumption
