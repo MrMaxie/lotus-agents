@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
@@ -38,6 +38,12 @@ async function createDirectory(cwd: string, path: string): Promise<void> {
   await mkdir(join(cwd, path), { recursive: true });
 }
 
+async function copyRepositoryFile(cwd: string, sourcePath: string, targetPath: string): Promise<void> {
+  const content = await readFile(join(process.cwd(), sourcePath), 'utf8');
+
+  await createFile(cwd, targetPath, content);
+}
+
 async function createManagedArtifact(
   cwd: string,
   artifact: ManagedArtifact,
@@ -51,6 +57,11 @@ async function createManagedArtifact(
   if (artifact.kind === 'directory') {
     await createDirectory(cwd, artifact.path);
     await writeFile(join(cwd, artifact.path, '.lotus.json'), `${JSON.stringify({ metadata }, null, 2)}\n`);
+    return;
+  }
+
+  if (artifact.migration.strategy === 'structured-sections') {
+    await createFile(cwd, artifact.path, `# Managed ${artifact.path}\n\nUnrelated local content.\n`);
     return;
   }
 
@@ -211,6 +222,37 @@ describe('LotusAgents CLI', () => {
     }
   });
 
+  it('validates the Lotus init asset layout', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-agents.md', '.local/AGENTS.md');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-issues.lotus.json', '.local/issues/.lotus.json');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-issues-notes.lotus.json', '.local/issues-notes/.lotus.json');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-reviews.lotus.json', '.local/reviews/.lotus.json');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-pr-notes.lotus.json', '.local/pr-notes/.lotus.json');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/docs-agents.md', '.docs/AGENTS.md');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/docs-spec.lotus.json', '.docs/spec/.lotus.json');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/meetings-draft-template.md', '.docs/meetings/_draft.md');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/docs-templates.lotus.json', '.docs/templates/.lotus.json');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: valid (managed-artifacts-valid)');
+      expect(output).not.toContain('Diagnostics:');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('reports outdated Lotus metadata versions', async ({ task }) => {
     const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
 
@@ -233,6 +275,30 @@ describe('LotusAgents CLI', () => {
       expect(result.exitCode).toBe(0);
       expect(output).toContain('State: outdated (managed-artifacts-outdated)');
       expect(output).toContain(`expected v1 and content ${lotusArtifactContentVersion}`);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('reports legacy Lotus artifacts without metadata as outdated instead of damaged', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createFile(cwd, '.docs/AGENTS.md', '# Project guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: outdated (managed-artifacts-outdated)');
+      expect(output).toContain('Missing Lotus metadata for .docs/AGENTS.md');
+      expect(output).not.toContain('State: damaged-lotus-artifact');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

@@ -130,17 +130,25 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
       };
     }
 
-    const metadataResult = artifact.kind === 'directory' ? await readDirectoryMetadata(absolutePath) : await readFileMetadata(absolutePath);
+    const metadataResult = await readArtifactMetadata(absolutePath, artifact);
+
+    if (metadataResult.status === 'not-required') {
+      return {
+        path: artifact.path,
+        status: 'valid',
+        diagnostics: [],
+      };
+    }
 
     if (metadataResult.status === 'missing') {
       return {
         path: artifact.path,
-        status: 'damaged-lotus-artifact',
+        status: 'outdated',
         diagnostics: [
           {
             path: artifact.path,
             reasonCode: 'artifact-metadata-missing',
-            message: `Missing Lotus metadata for ${artifact.path}.`,
+            message: `Missing Lotus metadata for ${artifact.path}; this legacy artifact needs current Lotus metadata.`,
           },
         ],
       };
@@ -182,6 +190,18 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
       ],
     };
   }
+}
+
+async function readArtifactMetadata(absolutePath: string, artifact: ManagedArtifact): Promise<MetadataReadResult> {
+  if (artifact.migration.strategy === 'frontmatter') {
+    return readFileMetadata(absolutePath);
+  }
+
+  if (artifact.migration.strategy === 'directory-manifest') {
+    return readDirectoryMetadata(absolutePath);
+  }
+
+  return { status: 'not-required' };
 }
 
 async function readFileMetadata(absolutePath: string): Promise<MetadataReadResult> {
@@ -321,7 +341,10 @@ function summarizeState(input: {
   }
 
   if (artifactStates.some((artifact) => artifact.status === 'damaged-lotus-artifact')) {
-    const damagedDiagnostic = diagnostics.find((diagnostic) =>
+    const damagedDiagnostics = artifactStates
+      .filter((artifact) => artifact.status === 'damaged-lotus-artifact')
+      .flatMap((artifact) => artifact.diagnostics);
+    const damagedDiagnostic = damagedDiagnostics.find((diagnostic) =>
       ['artifact-kind-mismatch', 'artifact-metadata-missing', 'artifact-metadata-invalid'].includes(diagnostic.reasonCode),
     );
 
@@ -442,4 +465,8 @@ function formatParserError(error: unknown): string {
   return error instanceof Error ? error.message : 'unknown parser error';
 }
 
-type MetadataReadResult = { status: 'missing' } | { status: 'invalid'; message: string } | { status: 'present'; metadata: unknown };
+type MetadataReadResult =
+  | { status: 'missing' }
+  | { status: 'invalid'; message: string }
+  | { status: 'not-required' }
+  | { status: 'present'; metadata: unknown };

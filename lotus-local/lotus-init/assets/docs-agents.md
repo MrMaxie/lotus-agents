@@ -1,3 +1,21 @@
+---
+lotus: managed-artifact
+scope: docs
+artifactType: docs-guidance
+schemaVersion: 1
+contentVersion: "0.1.0"
+privacy: project
+contentClass: user-editable
+selectedProfiles:
+  - local-first
+selectedAgents: []
+selectedProcedures:
+  - task-intake
+  - pr-intake
+  - meeting-promotion
+  - spec-bootstrap
+---
+
 # Durable Agent Rules
 
 ## Durable Sources

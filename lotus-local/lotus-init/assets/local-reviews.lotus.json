@@ -1,0 +1,14 @@
+{
+  "metadata": {
+    "lotus": "managed-artifact",
+    "scope": "local",
+    "artifactType": "local-review-store",
+    "schemaVersion": 1,
+    "contentVersion": "0.1.0",
+    "privacy": "private",
+    "contentClass": "user-editable",
+    "selectedProfiles": ["local-first"],
+    "selectedAgents": [],
+    "selectedProcedures": ["pr-intake"]
+  }
+}

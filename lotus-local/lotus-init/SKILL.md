@@ -33,14 +33,20 @@ Use this skill when a repository needs the base Lotus setup.
 
 - create the minimal missing base structure:
   - `.local/AGENTS.md` from `assets/local-agents.md`
-  - `.local/issues/`
-  - `.local/issues-notes/`
-  - `.local/reviews/`
-  - `.local/pr-notes/`
+  - `.local/issues/` with `.local/issues/.lotus.json` from
+    `assets/local-issues.lotus.json`
+  - `.local/issues-notes/` with `.local/issues-notes/.lotus.json` from
+    `assets/local-issues-notes.lotus.json`
+  - `.local/reviews/` with `.local/reviews/.lotus.json` from
+    `assets/local-reviews.lotus.json`
+  - `.local/pr-notes/` with `.local/pr-notes/.lotus.json` from
+    `assets/local-pr-notes.lotus.json`
   - `.docs/AGENTS.md` from `assets/docs-agents.md`
-  - `.docs/spec/`
+  - `.docs/spec/` with `.docs/spec/.lotus.json` from
+    `assets/docs-spec.lotus.json`
   - `.docs/meetings/_draft.md` from `assets/meetings-draft-template.md`
-  - `.docs/templates/`
+  - `.docs/templates/` with `.docs/templates/.lotus.json` from
+    `assets/docs-templates.lotus.json`
 - create `.docs/practices/` only when the user wants practice files or wants
   the fuller starter shape
 - when `.local/AGENTS.md` or `.docs/AGENTS.md` already exists, merge only the
@@ -77,3 +83,9 @@ Use this skill when a repository needs the base Lotus setup.
 - `assets/local-agents.md`
 - `assets/docs-agents.md`
 - `assets/meetings-draft-template.md`
+- `assets/local-issues.lotus.json`
+- `assets/local-issues-notes.lotus.json`
+- `assets/local-reviews.lotus.json`
+- `assets/local-pr-notes.lotus.json`
+- `assets/docs-spec.lotus.json`
+- `assets/docs-templates.lotus.json`

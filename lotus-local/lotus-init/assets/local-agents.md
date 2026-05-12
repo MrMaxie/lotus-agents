@@ -1,3 +1,19 @@
+---
+lotus: managed-artifact
+scope: local
+artifactType: local-guidance
+schemaVersion: 1
+contentVersion: "0.1.0"
+privacy: private
+contentClass: user-editable
+selectedProfiles:
+  - local-first
+  - linear-first
+selectedAgents: []
+selectedProcedures:
+  - private-project-guidance
+---
+
 # Local Agent Rules
 
 ## Read Order

@@ -1,0 +1,14 @@
+{
+  "metadata": {
+    "lotus": "managed-artifact",
+    "scope": "docs",
+    "artifactType": "spec-store",
+    "schemaVersion": 1,
+    "contentVersion": "0.1.0",
+    "privacy": "project",
+    "contentClass": "user-editable",
+    "selectedProfiles": ["local-first"],
+    "selectedAgents": [],
+    "selectedProcedures": ["spec-bootstrap"]
+  }
+}

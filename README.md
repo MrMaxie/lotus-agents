@@ -295,10 +295,23 @@ If you do not want to install the skills, you can adopt Lotus manually:
    - `.docs/spec/`
    - `.docs/meetings/`
    - `.docs/templates/`
-4. create `.docs/meetings/_draft.md` from
+4. copy the directory metadata manifests:
+   - `lotus-local/lotus-init/assets/local-issues.lotus.json` to
+     `.local/issues/.lotus.json`
+   - `lotus-local/lotus-init/assets/local-issues-notes.lotus.json` to
+     `.local/issues-notes/.lotus.json`
+   - `lotus-local/lotus-init/assets/local-reviews.lotus.json` to
+     `.local/reviews/.lotus.json`
+   - `lotus-local/lotus-init/assets/local-pr-notes.lotus.json` to
+     `.local/pr-notes/.lotus.json`
+   - `lotus-local/lotus-init/assets/docs-spec.lotus.json` to
+     `.docs/spec/.lotus.json`
+   - `lotus-local/lotus-init/assets/docs-templates.lotus.json` to
+     `.docs/templates/.lotus.json`
+5. create `.docs/meetings/_draft.md` from
    `lotus-local/lotus-init/assets/meetings-draft-template.md`
-5. add `.local/` to `.git/info/exclude` or `.gitignore`
-6. decide whether `.docs/` should be committed or local-only; when in doubt,
+6. add `.local/` to `.git/info/exclude` or `.gitignore`
+7. decide whether `.docs/` should be committed or local-only; when in doubt,
    prefer local-only for mature repos and committed for greenfield or
    bootstrap-only repos
 
