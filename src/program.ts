@@ -21,15 +21,21 @@ export function buildProgram(context: CommandContext): Command {
     });
 
   for (const command of ['install', 'update', 'remove', 'doctor', 'validate'] as const) {
-    program
-      .command(command)
-      .description(`Route the LotusAgents ${command} workflow for the current repository.`)
-      .action(async () => {
-        context.stdout(`LotusAgents ${command}\n`);
-        const result = await runProjectCommand(command, context);
-        context.stdout(result.exitCode === 0 ? 'Done.\n' : 'Command stopped.\n');
-        exitCodeStore.set(program, result.exitCode);
+    const projectCommand = program.command(command).description(`Route the LotusAgents ${command} workflow for the current repository.`);
+
+    if (command === 'install' || command === 'update') {
+      projectCommand.option('--force', 'Force reinstall known Lotus-managed artifacts when repair is needed.');
+    }
+
+    projectCommand.action(async (options: { force?: boolean } = {}) => {
+      context.stdout(`LotusAgents ${command}\n`);
+      const result = await runProjectCommand(command, {
+        ...context,
+        forceReinstall: context.forceReinstall === true || options.force === true,
       });
+      context.stdout(result.exitCode === 0 ? 'Done.\n' : 'Command stopped.\n');
+      exitCodeStore.set(program, result.exitCode);
+    });
   }
 
   return program;
@@ -43,6 +49,7 @@ export async function runCli(argv = process.argv, options: Partial<CommandContex
     isInteractive: options.isInteractive,
     updateAction: options.updateAction,
     removeScope: options.removeScope,
+    forceReinstall: options.forceReinstall,
   };
 
   const program = buildProgram(context);

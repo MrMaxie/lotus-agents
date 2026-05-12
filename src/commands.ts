@@ -1,16 +1,26 @@
-import { lstat, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { copyFile, lstat, mkdir, rm } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { cancel, isCancel, select } from '@clack/prompts';
 import { Listr } from 'listr2';
 import pc from 'picocolors';
-import { getManagedArtifact, lotusManifest } from './manifest.js';
+import { getManagedArtifact, lotusManifest, type ManagedArtifact, managedArtifacts } from './manifest.js';
 import { detectRepository } from './repository.js';
 import { detectLotusState, type LotusState } from './state.js';
 import type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types.js';
 
 type ProjectCommand = 'install' | 'update' | 'remove' | 'doctor' | 'validate';
 
-type WorkflowMode = 'fresh-install' | 'detected-update' | 'explicit-update' | 'remove' | 'cancel' | 'diagnose';
+type WorkflowMode =
+  | 'fresh-install'
+  | 'detected-update'
+  | 'explicit-update'
+  | 'repair-guidance'
+  | 'force-reinstall'
+  | 'remove'
+  | 'cancel'
+  | 'diagnose'
+  | 'blocked';
 type DocsMode = 'committed' | 'local-only';
 
 type InstallationConfiguration = {
@@ -29,11 +39,26 @@ type WorkflowPlan = {
   configuration?: InstallationConfiguration;
   removeScope?: RemoveScope;
   selectedManagedPaths?: string[];
+  forceReinstallArtifacts?: ManagedArtifact[];
 };
 
 const diagnosticMessages: Record<'doctor' | 'validate', string> = {
   doctor: 'Inspect managed Lotus project state and report repair guidance.',
   validate: 'Validate known Lotus-managed project artifacts against the manifest.',
+};
+
+const moduleDirectory = dirname(fileURLToPath(import.meta.url));
+const packageRoot = join(moduleDirectory, '..');
+const reinstallAssetsByPath: Record<string, { sourcePath: string; targetFileName?: string }> = {
+  '.local/AGENTS.md': { sourcePath: 'lotus-local/lotus-init/assets/local-agents.md' },
+  '.local/issues': { sourcePath: 'lotus-local/lotus-init/assets/local-issues.lotus.json', targetFileName: '.lotus.json' },
+  '.local/issues-notes': { sourcePath: 'lotus-local/lotus-init/assets/local-issues-notes.lotus.json', targetFileName: '.lotus.json' },
+  '.local/reviews': { sourcePath: 'lotus-local/lotus-init/assets/local-reviews.lotus.json', targetFileName: '.lotus.json' },
+  '.local/pr-notes': { sourcePath: 'lotus-local/lotus-init/assets/local-pr-notes.lotus.json', targetFileName: '.lotus.json' },
+  '.docs/AGENTS.md': { sourcePath: 'lotus-local/lotus-init/assets/docs-agents.md' },
+  '.docs/spec': { sourcePath: 'lotus-local/lotus-init/assets/docs-spec.lotus.json', targetFileName: '.lotus.json' },
+  '.docs/meetings/_draft.md': { sourcePath: 'lotus-local/lotus-init/assets/meetings-draft-template.md' },
+  '.docs/templates': { sourcePath: 'lotus-local/lotus-init/assets/docs-templates.lotus.json', targetFileName: '.lotus.json' },
 };
 
 export async function runProjectCommand(command: ProjectCommand, context: CommandContext): Promise<CliResult> {
@@ -132,6 +157,18 @@ async function createUpdateActionPlan(
     return createRemovePlan(command, repository, state, context);
   }
 
+  if (state.status === 'external-corruption') {
+    return createExternalCorruptionPlan(command, repository, state);
+  }
+
+  if (context.forceReinstall === true) {
+    return createForceReinstallPlan(command, repository, state);
+  }
+
+  if (state.status === 'damaged-lotus-artifact') {
+    return createRepairGuidancePlan(command, repository, state);
+  }
+
   const configuration = createInstallationConfiguration(state);
 
   return {
@@ -147,6 +184,63 @@ async function createUpdateActionPlan(
     state,
     repository,
     configuration,
+  };
+}
+
+function createRepairGuidancePlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
+  const affectedPaths = state.diagnostics.map((diagnostic) => diagnostic.path);
+  const uniqueAffectedPaths = [...new Set(affectedPaths)];
+
+  return {
+    command,
+    mode: 'repair-guidance',
+    title: 'Repair workflow required for damaged Lotus-managed artifacts.',
+    plannedChanges: [
+      'Stop before overwriting files because Lotus-owned metadata or artifact shape is damaged.',
+      `Affected Lotus paths: ${uniqueAffectedPaths.length > 0 ? uniqueAffectedPaths.join(', ') : 'see diagnostics above'}.`,
+      'Repair the listed Lotus metadata manually, then rerun `lotusagents validate`.',
+      'Or run `lotusagents update --force` to replace known Lotus-managed artifacts from bundled templates.',
+      `Forced reinstall will replace user-editable managed artifacts: ${formatUserEditableManagedPaths()}.`,
+      'Unrelated external configuration will not be changed.',
+    ],
+    resultMessage: 'Repair guidance completed.',
+    state,
+    repository,
+  };
+}
+
+function createForceReinstallPlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
+  return {
+    command,
+    mode: 'force-reinstall',
+    title: 'Forced reinstall workflow.',
+    plannedChanges: [
+      'Refresh only known Lotus-managed file artifacts and directory metadata from the manifest.',
+      'Preserve existing contents inside managed directories unless the managed path has the wrong filesystem kind.',
+      'Recreate damaged or wrong-kind managed paths before writing bundled Lotus templates.',
+      `Warn before replacing user-editable managed artifacts: ${formatUserEditableManagedPaths()}.`,
+      'Leave unrelated external configuration untouched.',
+    ],
+    resultMessage: 'Forced reinstall completed.',
+    state,
+    repository,
+    forceReinstallArtifacts: managedArtifacts,
+  };
+}
+
+function createExternalCorruptionPlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
+  return {
+    command,
+    mode: 'blocked',
+    title: 'External configuration is broken outside Lotus repair scope.',
+    plannedChanges: [
+      'Stop before applying Lotus artifact changes.',
+      'Fix the affected external file shown in diagnostics, then rerun the Lotus command.',
+      'Lotus will not rewrite unrelated external configuration.',
+    ],
+    resultMessage: 'No Lotus repair changes applied.',
+    state,
+    repository,
   };
 }
 
@@ -286,7 +380,7 @@ function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): void {
     context.stdout('Diagnostics:\n');
 
     for (const diagnostic of plan.state.diagnostics) {
-      context.stdout(`- ${diagnostic.reasonCode}: ${diagnostic.message}\n`);
+      context.stdout(`- ${diagnostic.path} ${diagnostic.reasonCode}: ${diagnostic.message}\n`);
     }
   }
 
@@ -319,6 +413,20 @@ async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
       {
         title: 'Run workflow tasks',
         task: async () => {
+          if (plan.mode === 'force-reinstall') {
+            if (plan.repository.root === null) {
+              appliedChanges.push('No repository root was available.');
+              return;
+            }
+
+            for (const artifact of plan.forceReinstallArtifacts ?? []) {
+              await reinstallManagedArtifact(plan.repository.root, artifact);
+              appliedChanges.push(`Reinstalled ${artifact.path}.`);
+            }
+
+            return;
+          }
+
           if (plan.mode !== 'remove') {
             appliedChanges.push('No filesystem changes were required for this orchestration step.');
             return;
@@ -348,6 +456,41 @@ async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
 
   await task.run();
   return appliedChanges;
+}
+
+async function reinstallManagedArtifact(root: string, artifact: ManagedArtifact): Promise<void> {
+  const absolutePath = join(root, artifact.path);
+  const asset = reinstallAssetsByPath[artifact.path];
+
+  if (asset === undefined) {
+    throw new Error(`Missing bundled reinstall asset for ${artifact.path}.`);
+  }
+
+  if (artifact.kind === 'directory') {
+    const stats = await lstat(absolutePath).catch((error: unknown) => {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        return null;
+      }
+
+      throw error;
+    });
+
+    if (stats !== null && !stats.isDirectory()) {
+      await rm(absolutePath, { force: true, recursive: true });
+    }
+
+    await mkdir(absolutePath, { recursive: true });
+    const targetPath = join(absolutePath, asset.targetFileName ?? '.lotus.json');
+
+    await rm(targetPath, { force: true, recursive: true });
+    await copyFile(join(packageRoot, asset.sourcePath), targetPath);
+
+    return;
+  }
+
+  await rm(absolutePath, { force: true, recursive: true });
+  await mkdir(dirname(absolutePath), { recursive: true });
+  await copyFile(join(packageRoot, asset.sourcePath), absolutePath);
 }
 
 function renderResultSummary(plan: WorkflowPlan, appliedChanges: string[], context: CommandContext): void {
@@ -385,4 +528,11 @@ function formatRemoveScope(removeScope: RemoveScope): string {
   }
 
   return 'all artifacts';
+}
+
+function formatUserEditableManagedPaths(): string {
+  return managedArtifacts
+    .filter((artifact) => artifact.metadata.contentClass === 'user-editable')
+    .map((artifact) => artifact.path)
+    .join(', ');
 }

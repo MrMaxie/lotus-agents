@@ -10,6 +10,7 @@ export type CommandContext = {
   isInteractive?: boolean;
   updateAction?: WorkflowAction;
   removeScope?: RemoveScope;
+  forceReinstall?: boolean;
 };
 
 export type CliResult = {
