@@ -42,6 +42,7 @@ export async function runCli(argv = process.argv, options: Partial<CommandContex
     stderr: options.stderr ?? ((message) => process.stderr.write(message)),
     isInteractive: options.isInteractive,
     updateAction: options.updateAction,
+    removeScope: options.removeScope,
   };
 
   const program = buildProgram(context);
