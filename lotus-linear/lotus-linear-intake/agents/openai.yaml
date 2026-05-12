@@ -1,0 +1,13 @@
+interface:
+  display_name: "Lotus Linear Intake"
+  short_description: "Normalize work into Linear."
+  default_prompt: "Use $lotus-linear-intake to capture this issue, PR, review, or CI work in Linear."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear connector for profile resolution, issues, documents, and comments."
+
+policy:
+  allow_implicit_invocation: true
