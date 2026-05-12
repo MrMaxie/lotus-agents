@@ -97,10 +97,6 @@ async function createWorkflowPlan(
   state: LotusState,
   context: CommandContext,
 ): Promise<WorkflowPlan> {
-  if ((command === 'install' || command === 'update') && state.status === 'external-corruption') {
-    return createExternalCorruptionPlan(command, repository, state);
-  }
-
   if (command === 'install') {
     if (state.hasManagedState) {
       return createUpdateActionPlan(command, repository, state, context, 'detected-update');
@@ -161,6 +157,10 @@ async function createUpdateActionPlan(
     return createRemovePlan(command, repository, state, context);
   }
 
+  if (state.status === 'external-corruption') {
+    return createExternalCorruptionPlan(command, repository, state);
+  }
+
   if (context.forceReinstall === true) {
     return createForceReinstallPlan(command, repository, state);
   }
@@ -215,7 +215,8 @@ function createForceReinstallPlan(command: ProjectCommand, repository: Repositor
     mode: 'force-reinstall',
     title: 'Forced reinstall workflow.',
     plannedChanges: [
-      'Replace only known Lotus-managed artifact paths from the manifest.',
+      'Refresh only known Lotus-managed file artifacts and directory metadata from the manifest.',
+      'Preserve existing contents inside managed directories unless the managed path has the wrong filesystem kind.',
       'Recreate damaged or wrong-kind managed paths before writing bundled Lotus templates.',
       `Warn before replacing user-editable managed artifacts: ${formatUserEditableManagedPaths()}.`,
       'Leave unrelated external configuration untouched.',
@@ -461,24 +462,34 @@ async function reinstallManagedArtifact(root: string, artifact: ManagedArtifact)
   const absolutePath = join(root, artifact.path);
   const asset = reinstallAssetsByPath[artifact.path];
 
-  await rm(absolutePath, { force: true, recursive: true });
+  if (asset === undefined) {
+    throw new Error(`Missing bundled reinstall asset for ${artifact.path}.`);
+  }
 
   if (artifact.kind === 'directory') {
-    await mkdir(absolutePath, { recursive: true });
+    const stats = await lstat(absolutePath).catch((error: unknown) => {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        return null;
+      }
 
-    if (asset?.targetFileName !== undefined) {
-      await copyFile(join(packageRoot, asset.sourcePath), join(absolutePath, asset.targetFileName));
+      throw error;
+    });
+
+    if (stats !== null && !stats.isDirectory()) {
+      await rm(absolutePath, { force: true, recursive: true });
     }
 
+    await mkdir(absolutePath, { recursive: true });
+    const targetPath = join(absolutePath, asset.targetFileName ?? '.lotus.json');
+
+    await rm(targetPath, { force: true, recursive: true });
+    await copyFile(join(packageRoot, asset.sourcePath), targetPath);
+
     return;
   }
 
+  await rm(absolutePath, { force: true, recursive: true });
   await mkdir(dirname(absolutePath), { recursive: true });
-
-  if (asset === undefined) {
-    return;
-  }
-
   await copyFile(join(packageRoot, asset.sourcePath), absolutePath);
 }
 

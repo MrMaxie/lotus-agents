@@ -70,13 +70,14 @@ MAX-75 package orchestrates `install`, `update`, `remove`, `doctor`, and
 when no Lotus-managed state is present and routes to update when existing state
 is detected. `update` offers the safe actions Update, Remove, and Cancel.
 When Lotus-managed artifacts are damaged, `update` reports a guided repair path
-instead of overwriting files by default; `update --force` reinstalls only known
-Lotus-managed artifacts from bundled templates and warns before replacing
-user-editable managed files. `remove` only deletes known Lotus-managed project
-artifacts. Managed artifacts are identified through a Zod-validated manifest
-with machine-readable metadata for scope, artifact type, schema version,
-content version, privacy, selected profiles, selected agents, selected
-procedures, content class, and migration strategy.
+instead of overwriting files by default; `update --force` refreshes known
+Lotus-managed files and directory metadata from bundled templates, preserving
+existing directory contents, and warns before replacing user-editable managed
+files. `remove` only deletes known Lotus-managed project artifacts. Managed
+artifacts are identified through a Zod-validated manifest with
+machine-readable metadata for scope, artifact type, schema version, content
+version, privacy, selected profiles, selected agents, selected procedures,
+content class, and migration strategy.
 
 ## Update All Skills
 

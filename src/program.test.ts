@@ -388,6 +388,11 @@ describe('LotusAgents CLI', () => {
       await execa('git', ['init'], { cwd });
       await createManagedArtifacts(cwd);
       await createFile(cwd, '.docs/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n');
+      await createFile(cwd, '.docs/spec/_toc.md', '# Spec index\n\nKeep this project state.\n');
+      await createFile(cwd, '.docs/templates/spec.md', '# Project spec template\n');
+      await createFile(cwd, '.local/issues/MAX-1.md', '# Local issue notes\n');
+      await rm(join(cwd, '.docs/spec/.lotus.json'), { recursive: true, force: true });
+      await createFile(cwd, '.docs/spec/.lotus.json/nested.md', '# Wrong metadata shape\n');
 
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
@@ -400,6 +405,9 @@ describe('LotusAgents CLI', () => {
       const output = writers.stdout.join('');
       const docsAgents = await readFile(join(cwd, '.docs/AGENTS.md'), 'utf8');
       const specManifest = await readFile(join(cwd, '.docs/spec/.lotus.json'), 'utf8');
+      const specIndex = await readFile(join(cwd, '.docs/spec/_toc.md'), 'utf8');
+      const specTemplate = await readFile(join(cwd, '.docs/templates/spec.md'), 'utf8');
+      const issueNotes = await readFile(join(cwd, '.local/issues/MAX-1.md'), 'utf8');
 
       expect(result.exitCode).toBe(0);
       expect(output).toContain('Forced reinstall workflow.');
@@ -407,6 +415,9 @@ describe('LotusAgents CLI', () => {
       expect(output).toContain('Reinstalled .docs/AGENTS.md.');
       expect(docsAgents).toContain('# Durable Agent Rules');
       expect(specManifest).toContain('"artifactType": "spec-store"');
+      expect(specIndex).toContain('Keep this project state.');
+      expect(specTemplate).toContain('Project spec template');
+      expect(issueNotes).toContain('Local issue notes');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
@@ -433,6 +444,36 @@ describe('LotusAgents CLI', () => {
       expect(output).toContain('outside Lotus repair scope');
     } finally {
       await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps fresh install available when only external configuration is broken', async ({ task }) => {
+    for (const command of ['install', 'update'] as const) {
+      const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-${command}-`));
+
+      try {
+        await execa('git', ['init'], { cwd });
+        await createFile(cwd, '.codex/config.toml', '[broken\n');
+
+        const writers = createWriters();
+        const result = await runCli(['node', 'lotusagents', command], {
+          cwd,
+          updateAction: 'update',
+          forceReinstall: true,
+          ...writers.context,
+        });
+
+        const output = writers.stdout.join('');
+
+        expect(result.exitCode).toBe(0);
+        expect(output).toContain(
+          command === 'install' ? 'Fresh install workflow.' : 'No existing Lotus state detected; running fresh install workflow.',
+        );
+        expect(output).not.toContain('External configuration is broken outside Lotus repair scope.');
+        expect(output).not.toContain('No Lotus repair changes applied.');
+      } finally {
+        await rm(cwd, { recursive: true, force: true });
+      }
     }
   });
 
