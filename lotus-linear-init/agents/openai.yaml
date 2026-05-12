@@ -1,0 +1,13 @@
+interface:
+  display_name: "Lotus Linear Init"
+  short_description: "Initialize Linear-backed Lotus."
+  default_prompt: "Use $lotus-linear-init to add Linear-backed Lotus rules to this repository."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "linear"
+      description: "Linear connector required by the resulting workflow."
+
+policy:
+  allow_implicit_invocation: true

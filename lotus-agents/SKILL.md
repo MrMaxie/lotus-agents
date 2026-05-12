@@ -1,6 +1,6 @@
 ---
 name: lotus-agents
-description: Route Lotus workflow tasks to the right `.local` + `.docs` skill. Use when Codex needs to initialize Lotus flow, bootstrap `.docs/spec`, promote `.docs/meetings/_draft.md`, or normalize local issue, PR, review, and CI work into Lotus artifacts with optional external references.
+description: Route Lotus workflow tasks to the right `.local` + `.docs` skill. Use when Codex needs to initialize Lotus flow, bootstrap `.docs/spec`, promote `.docs/meetings/_draft.md`, normalize local issue, PR, review, and CI work into Lotus artifacts, or route Linear-backed Lotus work to the Linear variant.
 ---
 
 # Lotus Agents
@@ -15,6 +15,8 @@ Use this skill as the entrypoint for the Lotus collection.
   meeting file
 - use `lotus-pr-intake` to collect issue, PR, review, and CI work into Lotus
   artifacts
+- use `lotus-linear-agents` when the human asks for the Linear-backed Lotus
+  variant or wants Linear to be the operational source of truth
 
 ## Operating Rules
 
@@ -26,6 +28,8 @@ Use this skill as the entrypoint for the Lotus collection.
   user intent, and when init gets no explicit preference, on repo maturity
 - use external systems such as GitHub or Jira as optional supporting context,
   not as the canonical Lotus state
+- if the human asks for Linear-backed work, switch to the Linear variant instead
+  of mixing Linear writes into local-first artifacts
 - do not create `AGENTS_TO_COPY.md`, `AGENTS_ISSUE_FLOW.md`, `questions`,
   `runs`, or `context.md`
 - when a repo already uses Lotus, preserve its existing Lotus artifacts unless

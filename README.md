@@ -8,8 +8,9 @@ Lotus Agents is a simple way to structure human-agent work in a repository.
 Instead of putting everything in one place, it separates private working notes
 from durable project guidance:
 
-- `.local/` for the agent's local working state
+- `.local/` for local-first working state or Linear-backed private config
 - `.docs/` for project knowledge worth keeping
+- Linear, optionally, for canonical operational issue and progress state
 
 ## Quick Start
 
@@ -25,6 +26,12 @@ If you want to set up the repository immediately:
 npx skills@latest add MrMaxie/lotus-agents --skill lotus-init
 ```
 
+If you want the Linear-backed variant instead:
+
+```bash
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-agents
+```
+
 Restart Codex after installation.
 
 The repository also exposes a native plugin manifest in
@@ -35,12 +42,12 @@ The repository also exposes a native plugin manifest in
 To refresh every Lotus skill to the newest published version, run:
 
 ```bash
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents lotus-init lotus-spec-init lotus-meeting-promote lotus-pr-intake
+npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents lotus-init lotus-spec-init lotus-meeting-promote lotus-pr-intake lotus-linear-agents lotus-linear-init lotus-linear-intake
 ```
 
 ## How It Works
 
-The model is intentionally small:
+The local-first model is intentionally small:
 
 ```text
 repo/
@@ -75,11 +82,38 @@ those branches split into subfiles. Prefer small linked entity docs over one
 large narrative page, keep them concise and in English, and call out code-facing
 names exactly as used together with the context they belong to.
 
+The Linear-backed variant keeps the same `.docs/` model but moves operational
+state to Linear:
+
+```text
+repo/
+  .local/
+    AGENTS.md   # private Linear project configuration
+  .docs/
+    AGENTS.md
+    spec/
+    meetings/
+    templates/
+
+Linear/
+  issues       # task descriptions, remote ticket clones, review clones
+  comments     # progress, PR-note proposals, reviewer reply proposals
+  documents    # project flow rules and recurring operational guidance
+```
+
+For that variant, Linear is the operational source of truth. `.local/` stores
+private configuration such as `linear_team`, `linear_project`,
+`linear_flow_document`, `source_policy`, and
+`external_writes: disallowed-by-default`. External systems such as Jira and
+GitHub are read-only by default and are linked or cloned into Linear when the
+project policy requires it.
+
 ## Installable Skills
 
 - **`lotus-agents`** - entrypoint skill that routes Lotus work to the right
   flow: setup, spec bootstrap, meeting promotion, or local-first
-  issue/PR/review/CI intake.
+  issue/PR/review/CI intake. It routes to the Linear variant when the human
+  asks for Linear-backed operational state.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents
@@ -90,6 +124,22 @@ names exactly as used together with the context they belong to.
   "Use $lotus-agents and initialize the Lotus workflow in this repo."
   "Use $lotus-agents and bootstrap .docs/spec for the current project."
   "Use $lotus-agents and prepare Lotus artifacts for the existing local work on issue 456."
+  "Use $lotus-agents and route this repo to the Linear-backed variant."
+  ```
+
+- **`lotus-linear-agents`** - entrypoint skill for the Linear-backed variant.
+  It routes setup to `lotus-linear-init`, issue/PR/review/CI work to
+  `lotus-linear-intake`, and durable project docs to the shared `.docs` skills.
+
+  ```sh
+  npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-agents
+  ```
+
+  ```sh
+  # Example prompts for the agent
+  "Use $lotus-linear-agents and initialize Linear-backed Lotus here."
+  "Use $lotus-linear-agents for this PR and capture the work in Linear."
+  "Use $lotus-linear-agents and clone the remote Jira ticket into Linear."
   ```
 
 - **`lotus-init`** - creates the base `.local/` + `.docs/` structure, seeds
@@ -107,6 +157,21 @@ names exactly as used together with the context they belong to.
   "Use $lotus-init here, but keep .docs local-only for now and ignore it too."
   "Use $lotus-init and choose the default .docs mode from the current repo state."
   "Use $lotus-init and create .docs/practices as well."
+  ```
+
+- **`lotus-linear-init`** - creates or merges `.local/AGENTS.md` and
+  `.docs/AGENTS.md` rules for Linear-backed operation. It keeps `.local/`
+  private and does not create local operational issue or PR-note stores.
+
+  ```sh
+  npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-init
+  ```
+
+  ```sh
+  # Example prompts for the agent
+  "Use $lotus-linear-init in this repo."
+  "Use $lotus-linear-init and keep external writes disallowed by default."
+  "Use $lotus-linear-init and preserve the existing Linear project settings."
   ```
 
 - **`lotus-spec-init`** - bootstraps or refreshes `.docs/spec/` with an
@@ -158,8 +223,25 @@ names exactly as used together with the context they belong to.
   "Use $lotus-pr-intake for this failed CI run and write PR notes for the user-facing changes."
   ```
 
-If you are not sure where to start, install `lotus-agents` first and route
-through `$lotus-agents`.
+- **`lotus-linear-intake`** - gathers issue, PR, review, and CI work into
+  Linear issues, comments, documents, and status context. It treats Linear as
+  the operational source of truth, requires exact links for remote-sourced work,
+  and reads external systems by default instead of writing back to them.
+
+  ```sh
+  npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-intake
+  ```
+
+  ```sh
+  # Example prompts for the agent
+  "Use $lotus-linear-intake for this Jira ticket and clone it into Linear."
+  "Use $lotus-linear-intake for PR #123 and propose PR notes in Linear."
+  "Use $lotus-linear-intake for this review comment and prepare a reply proposal."
+  "Use $lotus-linear-intake for the current task and record progress in Linear."
+  ```
+
+If you are not sure where to start, install `lotus-agents` first. If Linear
+should hold operational state, install `lotus-linear-agents`.
 
 ## Manual Adoption
 
@@ -181,6 +263,16 @@ If you do not want to install the skills, you can adopt Lotus manually:
 6. decide whether `.docs/` should be committed or local-only; when in doubt,
    prefer local-only for mature repos and committed for greenfield or
    bootstrap-only repos
+
+For the Linear-backed variant:
+
+1. copy `lotus-linear-init/assets/local-agents.md` to `.local/AGENTS.md`
+2. copy `lotus-linear-init/assets/docs-agents.md` to `.docs/AGENTS.md`
+3. fill in `linear_team`, `linear_project`, `linear_flow_document`,
+   `source_policy`, and `external_writes`
+4. add `.local/` to `.git/info/exclude` or `.gitignore`
+5. keep issue status, progress notes, review clones, and PR-note proposals in
+   Linear
 
 ## What Is In This Repo
 
