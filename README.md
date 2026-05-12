@@ -65,11 +65,15 @@ The repository also exposes a native plugin manifest in
 through Codex.
 
 The CLI exposes both `lotusagents` and `lotus-agents` binaries. The current
-MAX-74 package orchestrates `install`, `update`, `remove`, `doctor`, and
+MAX-75 package orchestrates `install`, `update`, `remove`, `doctor`, and
 `validate` commands inside a Git repository. `install` starts a fresh install
 when no Lotus-managed state is present and routes to update when existing state
 is detected. `update` offers the safe actions Update, Remove, and Cancel.
-`remove` only deletes known Lotus-managed project artifacts.
+`remove` only deletes known Lotus-managed project artifacts. Managed artifacts
+are identified through a Zod-validated manifest with machine-readable metadata
+for scope, artifact type, schema version, content version, privacy, selected
+profiles, selected agents, selected procedures, content class, and migration
+strategy.
 
 ## Update All Skills
 
