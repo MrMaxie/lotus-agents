@@ -3,13 +3,13 @@ import { join } from 'node:path';
 import { cancel, isCancel, select } from '@clack/prompts';
 import { Listr } from 'listr2';
 import pc from 'picocolors';
+import { getManagedArtifact, lotusManifest, managedArtifactPaths } from './manifest.js';
 import { detectRepository } from './repository.js';
 import type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types.js';
 
 type ProjectCommand = 'install' | 'update' | 'remove' | 'doctor' | 'validate';
 
 type WorkflowMode = 'fresh-install' | 'detected-update' | 'explicit-update' | 'remove' | 'cancel' | 'diagnose';
-type ManagedArtifactScope = 'local' | 'docs';
 type DocsMode = 'committed' | 'local-only';
 
 type LotusState = {
@@ -36,28 +36,9 @@ type WorkflowPlan = {
   selectedManagedPaths?: string[];
 };
 
-type ManagedArtifact = {
-  path: string;
-  scope: ManagedArtifactScope;
-};
-
-const managedArtifacts = [
-  { path: '.local/AGENTS.md', scope: 'local' },
-  { path: '.local/issues', scope: 'local' },
-  { path: '.local/issues-notes', scope: 'local' },
-  { path: '.local/reviews', scope: 'local' },
-  { path: '.local/pr-notes', scope: 'local' },
-  { path: '.docs/AGENTS.md', scope: 'docs' },
-  { path: '.docs/spec', scope: 'docs' },
-  { path: '.docs/meetings/_draft.md', scope: 'docs' },
-  { path: '.docs/templates', scope: 'docs' },
-] as const satisfies readonly ManagedArtifact[];
-
-const managedArtifactPaths = managedArtifacts.map((artifact) => artifact.path);
-
 const diagnosticMessages: Record<'doctor' | 'validate', string> = {
   doctor: 'Inspect managed Lotus project state and report repair guidance.',
-  validate: 'Validate known Lotus-managed project artifacts.',
+  validate: 'Validate known Lotus-managed project artifacts against the manifest.',
 };
 
 export async function runProjectCommand(command: ProjectCommand, context: CommandContext): Promise<CliResult> {
@@ -120,7 +101,11 @@ async function createWorkflowPlan(
     command,
     mode: 'diagnose',
     title: diagnosticMessages[command],
-    plannedChanges: ['Inspect known Lotus-managed artifacts.', 'Report state without modifying unrelated repository files.'],
+    plannedChanges: [
+      `Validate Lotus-managed artifact manifest schema v${lotusManifest.schemaVersion} with Zod.`,
+      'Inspect known Lotus-managed artifacts.',
+      'Report state without modifying unrelated repository files.',
+    ],
     resultMessage: `${command} workflow completed.`,
     state,
     repository,
@@ -323,6 +308,7 @@ async function detectLotusState(repository: RepositoryState): Promise<LotusState
 function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): void {
   context.stdout(`${pc.bold(plan.title)}\n`);
   context.stdout(`Repository: ${plan.repository.root}\n`);
+  context.stdout(`Manifest schema: v${lotusManifest.schemaVersion}\n`);
   context.stdout(`Detected managed artifacts: ${plan.state.managedPaths.length > 0 ? plan.state.managedPaths.join(', ') : 'none'}\n`);
 
   if (plan.configuration !== undefined) {
@@ -420,8 +406,4 @@ function formatRemoveScope(removeScope: RemoveScope): string {
   }
 
   return 'all artifacts';
-}
-
-function getManagedArtifact(managedPath: string): ManagedArtifact | undefined {
-  return managedArtifacts.find((artifact) => artifact.path === managedPath);
 }

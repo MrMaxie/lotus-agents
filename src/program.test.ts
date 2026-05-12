@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
+import { lotusArtifactMetadataSchema, lotusManifest, lotusManifestSchema, managedArtifacts } from './manifest.js';
 import { buildProgram, runCli } from './program.js';
 
 function createWriters() {
@@ -91,10 +92,39 @@ describe('LotusAgents CLI', () => {
 
       expect(result.exitCode).toBe(0);
       expect(writers.stdout.join('')).toContain('Inspect managed Lotus project state');
+      expect(writers.stdout.join('')).toContain('Manifest schema: v1');
       expect(writers.stdout.join('')).toContain('Repository:');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
+  });
+
+  it('defines semantic metadata for every Lotus-managed artifact', () => {
+    expect(lotusManifestSchema.parse(lotusManifest)).toEqual(lotusManifest);
+
+    for (const artifact of managedArtifacts) {
+      expect(lotusArtifactMetadataSchema.parse(artifact.metadata)).toEqual(artifact.metadata);
+      expect(artifact.metadata.lotus).toBe('managed-artifact');
+      expect(artifact.metadata.schemaVersion).toBe(1);
+      expect(artifact.metadata.contentVersion).toMatch(/^\d+\.\d+\.\d+$/);
+
+      if (artifact.path.startsWith('.local/')) {
+        expect(artifact.metadata.privacy).toBe('private');
+        expect(artifact.packageTemplate.include).toBe(false);
+        expect(artifact.packageTemplate.publicDocsAllowed).toBe(false);
+      }
+    }
+  });
+
+  it('rejects unsupported managed artifact schema versions', () => {
+    const [artifact] = managedArtifacts;
+
+    expect(
+      lotusArtifactMetadataSchema.safeParse({
+        ...artifact.metadata,
+        schemaVersion: 2,
+      }).success,
+    ).toBe(false);
   });
 
   it('starts fresh install when no managed state exists', async ({ task }) => {
