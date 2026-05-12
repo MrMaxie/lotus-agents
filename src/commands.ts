@@ -3,27 +3,15 @@ import { join } from 'node:path';
 import { cancel, isCancel, select } from '@clack/prompts';
 import { Listr } from 'listr2';
 import pc from 'picocolors';
-import { getManagedArtifact, lotusManifest, managedArtifactPaths, managedArtifacts } from './manifest.js';
+import { getManagedArtifact, lotusManifest } from './manifest.js';
 import { detectRepository } from './repository.js';
+import { detectLotusState, type LotusState } from './state.js';
 import type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types.js';
 
 type ProjectCommand = 'install' | 'update' | 'remove' | 'doctor' | 'validate';
 
 type WorkflowMode = 'fresh-install' | 'detected-update' | 'explicit-update' | 'remove' | 'cancel' | 'diagnose';
 type DocsMode = 'committed' | 'local-only';
-
-type LotusState = {
-  hasManagedState: boolean;
-  managedPaths: string[];
-  invalidManagedPaths: ArtifactKindMismatch[];
-  missingManagedPaths: string[];
-};
-
-type ArtifactKindMismatch = {
-  path: string;
-  expectedKind: 'file' | 'directory';
-  actualKind: 'file' | 'directory';
-};
 
 type InstallationConfiguration = {
   docsMode: DocsMode;
@@ -279,64 +267,11 @@ async function resolveRemoveScope(context: CommandContext, state: LotusState): P
   return scope;
 }
 
-async function detectLotusState(repository: RepositoryState): Promise<LotusState> {
-  const root = repository.root;
-
-  if (root === null) {
-    return {
-      hasManagedState: false,
-      managedPaths: [],
-      invalidManagedPaths: [],
-      missingManagedPaths: [...managedArtifactPaths],
-    };
-  }
-
-  const detectedArtifacts = await Promise.all(
-    managedArtifacts.map(async (artifact): Promise<{ path: string; kindMismatch: ArtifactKindMismatch | null } | null> => {
-      const absolutePath = join(root, artifact.path);
-
-      try {
-        const stats = await lstat(absolutePath);
-        const actualKind = stats.isDirectory() ? 'directory' : 'file';
-
-        if (actualKind !== artifact.kind) {
-          return {
-            path: artifact.path,
-            kindMismatch: {
-              path: artifact.path,
-              expectedKind: artifact.kind,
-              actualKind,
-            },
-          };
-        }
-
-        return {
-          path: artifact.path,
-          kindMismatch: null,
-        };
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  const managedPaths = detectedArtifacts.flatMap((artifact) =>
-    artifact !== null && artifact.kindMismatch === null ? [artifact.path] : [],
-  );
-  const invalidManagedPaths = detectedArtifacts.flatMap((artifact) => artifact?.kindMismatch ?? []);
-
-  return {
-    hasManagedState: managedPaths.length > 0,
-    managedPaths,
-    invalidManagedPaths,
-    missingManagedPaths: managedArtifactPaths.filter((managedPath) => !managedPaths.includes(managedPath)),
-  };
-}
-
 function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): void {
   context.stdout(`${pc.bold(plan.title)}\n`);
   context.stdout(`Repository: ${plan.repository.root}\n`);
   context.stdout(`Manifest schema: v${lotusManifest.schemaVersion}\n`);
+  context.stdout(`State: ${plan.state.status} (${plan.state.reasonCode})\n`);
   context.stdout(`Detected managed artifacts: ${plan.state.managedPaths.length > 0 ? plan.state.managedPaths.join(', ') : 'none'}\n`);
 
   if (plan.state.invalidManagedPaths.length > 0) {
@@ -345,6 +280,14 @@ function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): void {
         .map((artifact) => `${artifact.path} (expected ${artifact.expectedKind}, found ${artifact.actualKind})`)
         .join(', ')}\n`,
     );
+  }
+
+  if (plan.state.diagnostics.length > 0) {
+    context.stdout('Diagnostics:\n');
+
+    for (const diagnostic of plan.state.diagnostics) {
+      context.stdout(`- ${diagnostic.reasonCode}: ${diagnostic.message}\n`);
+    }
   }
 
   if (plan.configuration !== undefined) {
