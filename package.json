@@ -57,7 +57,7 @@
     "@clack/prompts": "1.4.0",
     "commander": "14.0.3",
     "execa": "9.6.1",
-    "listr2": "10.2.1",
+    "listr2": "9.0.5",
     "picocolors": "1.1.1",
     "zod": "4.4.3"
   },
@@ -66,5 +66,8 @@
     "@types/node": "25.7.0",
     "typescript": "6.0.3",
     "vitest": "4.1.6"
+  },
+  "engines": {
+    "node": ">=20.12.0"
   }
 }

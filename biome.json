@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "files": {
-    "includes": ["src/**/*.ts", "*.json", "*.jsonc", "!package-lock.json"]
+    "includes": ["src/**/*.ts", "*.ts", "*.json", "*.jsonc", "!package-lock.json"]
   },
   "formatter": {
     "enabled": true,

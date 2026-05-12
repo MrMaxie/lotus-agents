@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execa } from 'execa';
@@ -44,29 +44,37 @@ describe('LotusAgents CLI', () => {
   it('returns a useful error outside a repository', async ({ task }) => {
     const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
 
-    const writers = createWriters();
-    const result = await runCli(['node', 'lotusagents', 'install'], {
-      cwd,
-      ...writers.context,
-    });
+    try {
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
 
-    expect(result.exitCode).toBe(1);
-    expect(writers.stderr.join('')).toContain('outside a Git repository');
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('outside a Git repository');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
   });
 
   it('routes project commands inside a repository', async ({ task }) => {
-    const cwd = join(process.cwd(), '.tmp', task.id);
-    await mkdir(cwd, { recursive: true });
-    await execa('git', ['init'], { cwd });
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
 
-    const writers = createWriters();
-    const result = await runCli(['node', 'lotusagents', 'doctor'], {
-      cwd,
-      ...writers.context,
-    });
+    try {
+      await execa('git', ['init'], { cwd });
 
-    expect(result.exitCode).toBe(0);
-    expect(writers.stdout.join('')).toContain('Doctor routing is ready');
-    expect(writers.stdout.join('')).toContain('Repository:');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'doctor'], {
+        cwd,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(writers.stdout.join('')).toContain('Doctor routing is ready');
+      expect(writers.stdout.join('')).toContain('Repository:');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
   });
 });
