@@ -71,8 +71,104 @@ describe('LotusAgents CLI', () => {
       });
 
       expect(result.exitCode).toBe(0);
-      expect(writers.stdout.join('')).toContain('Doctor routing is ready');
+      expect(writers.stdout.join('')).toContain('Inspect managed Lotus project state');
       expect(writers.stdout.join('')).toContain('Repository:');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('starts fresh install when no managed state exists', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Fresh install workflow.');
+      expect(output).toContain('Planned changes:');
+      expect(output).toContain('Keep project artifacts local');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('routes install to update when managed state exists', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await execa('node', ['-e', "require('node:fs').mkdirSync('.docs')"], { cwd });
+      await execa('node', ['-e', "require('node:fs').writeFileSync('.docs/AGENTS.md', '# Project guidance\\n')"], { cwd });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Existing Lotus state detected; running update workflow.');
+      expect(output).toContain('.docs/AGENTS.md');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('supports canceling update before applying changes', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: 'cancel',
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Update canceled before applying changes.');
+      expect(output).toContain('No changes applied.');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('removes only known Lotus-managed artifacts', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await execa('node', ['-e', "require('node:fs').mkdirSync('.docs')"], { cwd });
+      await execa('node', ['-e', "require('node:fs').writeFileSync('.docs/AGENTS.md', '# Project guidance\\n')"], { cwd });
+      await execa('node', ['-e', "require('node:fs').writeFileSync('README.md', '# Keep me\\n')"], { cwd });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      await expect(execa('node', ['-e', "require('node:fs').accessSync('.docs/AGENTS.md')"], { cwd })).rejects.toThrow();
+      await expect(execa('node', ['-e', "require('node:fs').accessSync('README.md')"], { cwd })).resolves.toBeDefined();
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Removed .docs/AGENTS.md.');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
