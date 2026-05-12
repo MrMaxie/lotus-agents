@@ -17,19 +17,19 @@ from durable project guidance:
 Install the main routing skill:
 
 ```bash
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents
+npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-agents
 ```
 
 If you want to set up the repository immediately:
 
 ```bash
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-init
+npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-init
 ```
 
 If you want the Linear-backed variant instead:
 
 ```bash
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-agents
+npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-agents
 ```
 
 Restart Codex after installation.
@@ -39,10 +39,16 @@ The repository also exposes a native plugin manifest in
 
 ## Update All Skills
 
-To refresh every Lotus skill to the newest published version, run:
+To refresh every local-first Lotus skill to the newest published version, run:
 
 ```bash
-npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents lotus-init lotus-spec-init lotus-meeting-promote lotus-pr-intake lotus-linear-agents lotus-linear-init lotus-linear-intake
+npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-agents lotus-init lotus-spec-init lotus-meeting-promote lotus-pr-intake
+```
+
+To refresh every Linear-backed Lotus skill, run:
+
+```bash
+npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-agents lotus-linear-init lotus-linear-intake
 ```
 
 ## How It Works
@@ -116,7 +122,7 @@ project policy requires it.
   asks for Linear-backed operational state.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-agents
+  npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-agents
   ```
 
   ```sh
@@ -132,7 +138,7 @@ project policy requires it.
   `lotus-linear-intake`, and durable project docs to the shared `.docs` skills.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-agents
+  npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-agents
   ```
 
   ```sh
@@ -148,7 +154,7 @@ project policy requires it.
   local-only for mature repos, committed for early or bootstrap repos.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-init
+  npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-init
   ```
 
   ```sh
@@ -164,7 +170,7 @@ project policy requires it.
   private and does not create local operational issue or PR-note stores.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-init
+  npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-init
   ```
 
   ```sh
@@ -179,7 +185,7 @@ project policy requires it.
   branch.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-spec-init
+  npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-spec-init
   ```
 
   ```sh
@@ -195,7 +201,7 @@ project policy requires it.
   template afterward.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-meeting-promote
+  npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-meeting-promote
   ```
 
   ```sh
@@ -211,7 +217,7 @@ project policy requires it.
   truth and using remote providers only as optional supporting context.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-pr-intake
+  npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-pr-intake
   ```
 
   ```sh
@@ -229,7 +235,7 @@ project policy requires it.
   and reads external systems by default instead of writing back to them.
 
   ```sh
-  npx skills@latest add MrMaxie/lotus-agents --skill lotus-linear-intake
+  npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-intake
   ```
 
   ```sh
@@ -247,8 +253,8 @@ should hold operational state, install `lotus-linear-agents`.
 
 If you do not want to install the skills, you can adopt Lotus manually:
 
-1. copy `lotus-init/assets/local-agents.md` to `.local/AGENTS.md`
-2. copy `lotus-init/assets/docs-agents.md` to `.docs/AGENTS.md`
+1. copy `lotus-local/lotus-init/assets/local-agents.md` to `.local/AGENTS.md`
+2. copy `lotus-local/lotus-init/assets/docs-agents.md` to `.docs/AGENTS.md`
 3. create these directories:
    - `.local/issues/`
    - `.local/issues-notes/`
@@ -258,7 +264,7 @@ If you do not want to install the skills, you can adopt Lotus manually:
    - `.docs/meetings/`
    - `.docs/templates/`
 4. create `.docs/meetings/_draft.md` from
-   `lotus-init/assets/meetings-draft-template.md`
+   `lotus-local/lotus-init/assets/meetings-draft-template.md`
 5. add `.local/` to `.git/info/exclude` or `.gitignore`
 6. decide whether `.docs/` should be committed or local-only; when in doubt,
    prefer local-only for mature repos and committed for greenfield or
@@ -266,8 +272,8 @@ If you do not want to install the skills, you can adopt Lotus manually:
 
 For the Linear-backed variant:
 
-1. copy `lotus-linear-init/assets/local-agents.md` to `.local/AGENTS.md`
-2. copy `lotus-linear-init/assets/docs-agents.md` to `.docs/AGENTS.md`
+1. copy `lotus-linear/lotus-linear-init/assets/local-agents.md` to `.local/AGENTS.md`
+2. copy `lotus-linear/lotus-linear-init/assets/docs-agents.md` to `.docs/AGENTS.md`
 3. fill in `linear_team`, `linear_project`, `linear_flow_document`,
    `source_policy`, and `external_writes`
 4. add `.local/` to `.git/info/exclude` or `.gitignore`
@@ -282,10 +288,13 @@ The most important pieces are:
   the main human entrypoint
 - `AGENTS.md`:
   working rules for this repository
-- `lotus-*/`:
-  the actual skills and their assets
+- `lotus-local/`:
+  the local-first skill package and its assets
+- `lotus-linear/`:
+  the Linear-backed skill package and its assets
 
 If you want the details, read:
 
 - `AGENTS.md` for repository rules
-- `lotus-*/SKILL.md` for the behavior of each skill
+- `lotus-local/*/SKILL.md` and `lotus-linear/*/SKILL.md` for the behavior of
+  each skill

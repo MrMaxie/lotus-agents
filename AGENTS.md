@@ -7,7 +7,8 @@ This repo defines a `.local` + `.docs` workflow for human-agent work.
 The current product shape is:
 
 - `README.md` is the main human entrypoint
-- each root `lotus-*` directory is an installable skill
+- `lotus-local/` is the local-first installable skill package root
+- `lotus-linear/` is the Linear-backed installable skill package root
 - `.codex-plugin/plugin.json` bundles the skill collection for native Codex
   plugin installation
 
@@ -24,8 +25,8 @@ Do not treat this repo as a consumer repository by default.
 
 When changing the contract or adoption story:
 
-1. keep `README.md` aligned with the relevant `lotus-*/SKILL.md` files and
-   their assets
+1. keep `README.md` aligned with the relevant skills under `lotus-local/` and
+   `lotus-linear/`
 2. keep the model centered on `.local/AGENTS.md` and `.docs/AGENTS.md`
 3. keep `.local/` private-first and `.docs/` required in the workflow but
    optional to commit
@@ -42,7 +43,8 @@ When changing the contract or adoption story:
 Keep each artifact scoped to the reader that will actually use it:
 
 - `README.md` is for humans adopting or understanding the repo
-- `AGENTS.md` and `lotus-*/` are for agents executing work
+- `AGENTS.md`, `lotus-local/`, and `lotus-linear/` are for agents executing
+  work
 - keep install and adoption guidance in `README.md`, not in machine-facing
   workflow files
 - keep machine-facing files operational; avoid self-descriptions and historical
@@ -56,9 +58,9 @@ If you change naming, paths, or adoption flow, review at least:
 
 - `README.md`
 - `.codex-plugin/plugin.json`
-- `lotus-agents/`
-- `lotus-init/`
-- any other affected `lotus-*` skill directories
+- `lotus-local/`
+- `lotus-linear/`
+- any affected skill directories under those package roots
 
 ## Source Of Truth For This Repo
 
