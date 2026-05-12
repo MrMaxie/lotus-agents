@@ -3,6 +3,7 @@
 ## PR Note Proposal
 
 - PR: <pr-url|not-opened>
+- PR Title: <actual PR title|not-opened>
 - Branch: <branch-name>
 - Source Issue: <linear-issue-id-or-url>
 - Summary: <2-4 concise sentences written as the PR author>

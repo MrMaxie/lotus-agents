@@ -23,11 +23,24 @@
   target and action
 
 ## Recurring Hygiene
-- Keep active tasks assigned to the configured project
+- Keep active tasks linked to the configured project
 - Use cycles when the project already uses cycles
 - Refresh remote-sourced tasks before replying externally or closing them
 - Add progress comments when work pauses, resumes, blocks, or becomes ready for
   review
+- Do not assign people to Linear issues, GitHub pull requests, or related tasks
+  unless the human explicitly asks for assignment or the next step is a manual
+  human action
+
+## Branch And Pull Request Hygiene
+- Use only `feat/<taskid>`, `fix/<taskid>`, `chore/<taskid>`, or
+  `epic/<epictaskid>` branch names for implementation work
+- Use lowercase Linear identifiers for `<taskid>` and `<epictaskid>`, for
+  example `feat/max-77`, `chore/max-82`, or `epic/max-72`
+- Do not use Linear-generated or personal-prefix branch names such as
+  `maxie/max-77-...`
+- Title pull requests as `<TASKID>: <short Linear-aligned description>`
+- Use the repository pull request template when opening GitHub pull requests
 
 ## Agent Starting Point
 1. Read `.local/AGENTS.md`
