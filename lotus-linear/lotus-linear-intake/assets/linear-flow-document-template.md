@@ -28,6 +28,8 @@
 - Refresh remote-sourced tasks before replying externally or closing them
 - Add progress comments when work pauses, resumes, blocks, or becomes ready for
   review
+- Keep Linear status, progress comments, and PR links current when the work
+  state changes materially
 - Do not assign people to Linear issues, GitHub pull requests, or related tasks
   unless the human explicitly asks for assignment or the next step is a manual
   human action
@@ -40,7 +42,15 @@
 - Do not use Linear-generated or personal-prefix branch names such as
   `maxie/max-77-...`
 - Title pull requests as `<TASKID>: <short Linear-aligned description>`
-- Use the repository pull request template when opening GitHub pull requests
+- Use the repository pull request template when opening GitHub pull requests and
+  fill every applicable section
+- Write PR titles, descriptions, implementation notes, verification notes, and
+  risks in English
+- Open implementation PRs ready for review by default; use draft PRs only when
+  the human explicitly asks for a draft
+- Before committing, inspect the full worktree, stage only intended files, and
+  exclude test leftovers, generated scratch files, logs, traces, and debug
+  artifacts
 
 ## Agent Starting Point
 1. Read `.local/AGENTS.md`

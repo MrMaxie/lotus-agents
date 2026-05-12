@@ -76,8 +76,18 @@ changes the policy for this repository.
 - do not use Linear-generated, personal-prefix, or descriptive slug branch names
   such as `maxie/max-77-...`
 - title pull requests as `<TASKID>: <short Linear-aligned description>`
-- use the repository pull request template when opening GitHub pull requests
+- use the repository pull request template when opening GitHub pull requests and
+  fill every applicable section
+- write PR titles, descriptions, implementation notes, verification notes, and
+  risks in English
+- open implementation PRs ready for review by default; use draft PRs only when
+  the human explicitly asks for a draft
 - leave Linear issues, GitHub pull requests, and related workflow tasks
   unassigned unless the human explicitly asks for assignment or the next step is
   a clearly manual human action such as PR review, manual verification, or
   approval
+- keep Linear current by updating issue status, progress comments, and PR links
+  when the work state changes materially
+- before committing, inspect the full worktree, stage only intended files, and
+  exclude test leftovers, generated scratch files, logs, traces, and debug
+  artifacts
