@@ -23,12 +23,15 @@ export const lotusProfileSchema = z.enum(['local-first', 'linear-first']);
 export const lotusAgentSchema = z.enum(['codex', 'opencode', 'claude', 'cursor']);
 export const migrationStrategySchema = z.enum(['frontmatter', 'structured-sections', 'directory-manifest']);
 
+const semanticVersionPattern =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
 export const lotusArtifactMetadataSchema = z.object({
   lotus: z.literal('managed-artifact'),
   scope: managedArtifactScopeSchema,
   artifactType: managedArtifactTypeSchema,
   schemaVersion: z.literal(lotusArtifactSchemaVersion),
-  contentVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  contentVersion: z.string().regex(semanticVersionPattern),
   privacy: managedPrivacySchema,
   contentClass: managedContentClassSchema,
   selectedProfiles: z.array(lotusProfileSchema),
@@ -77,6 +80,14 @@ export const lotusManifestSchema = z
           code: 'custom',
           message: `Artifact scope and metadata scope must match for ${artifact.path}`,
           path: ['artifacts', index, 'metadata', 'scope'],
+        });
+      }
+
+      if (!isPathInArtifactScope(artifact.path, artifact.scope)) {
+        context.addIssue({
+          code: 'custom',
+          message: `Artifact path must stay within the ${artifact.scope} namespace: ${artifact.path}`,
+          path: ['artifacts', index, 'path'],
         });
       }
 
@@ -235,6 +246,10 @@ export const managedArtifactPaths = managedArtifacts.map((artifact) => artifact.
 
 export function getManagedArtifact(managedPath: string): ManagedArtifact | undefined {
   return managedArtifacts.find((artifact) => artifact.path === managedPath);
+}
+
+function isPathInArtifactScope(path: string, scope: ManagedArtifactScope): boolean {
+  return scope === 'local' ? path.startsWith('.local/') : path.startsWith('.docs/');
 }
 
 type CreateArtifactInput = {
