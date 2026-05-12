@@ -1,6 +1,6 @@
 ---
 name: lotus-linear-agents
-description: Route Linear-backed Lotus workflow tasks to the right skill. Use when Codex needs to initialize a repository for Linear-backed operational state, capture issue, PR, review, or CI work in Linear, use `.docs` for durable project knowledge, or choose between Linear-backed Lotus and the local-first Lotus flow.
+description: Route Linear-backed Lotus workflow tasks to the right skill. Use when Codex needs to initialize or operate a repository where Linear is the operational and durable project source.
 ---
 
 # Lotus Linear Agents
@@ -9,13 +9,10 @@ Use this skill as the entrypoint for the Linear-backed Lotus variant.
 
 ## Core Routing
 
-- use `lotus-linear-init` to add the base `.local/AGENTS.md` and
-  `.docs/AGENTS.md` rules for Linear-backed work
+- use `lotus-linear-init` to add the base `.local/AGENTS.md` rules for
+  Linear-backed work
 - use `lotus-linear-intake` to collect issue, PR, review, and CI work into
   Linear issues, comments, documents, and status context
-- use `lotus-spec-init` to seed or refresh `.docs/spec/`
-- use `lotus-meeting-promote` to turn `.docs/meetings/_draft.md` into a dated
-  meeting file
 - use the local-first `lotus-agents` or `lotus-pr-intake` only when the human
   explicitly wants file-backed operational artifacts
 
@@ -23,8 +20,8 @@ Use this skill as the entrypoint for the Linear-backed Lotus variant.
 
 - treat Linear as the canonical operational state for active work
 - treat `.local/` as private configuration and machine-local instructions
-- treat `.docs/` as durable project guidance; whether it is committed depends on
-  user intent and repository policy
+- treat configured Linear project resources, documents, files, issues, and
+  comments as durable project context
 - read project-specific Linear routing from `.local/AGENTS.md` before using
   Linear: `linear_team`, `linear_project`, `linear_flow_document`,
   `source_policy`, and `external_writes`

@@ -25,8 +25,8 @@ Use this skill as the entrypoint for the Lotus collection.
   user intent, and when init gets no explicit preference, on repo maturity
 - use external systems such as GitHub or Jira as optional supporting context,
   not as the canonical Lotus state
-- if the human asks for Linear-backed work, tell them to install and use the
-  separate `lotus-linear-agents` skill package
+- if the human asks for a non-local operational source of truth, explain that
+  this package handles local-first Lotus only
 - do not create `AGENTS_TO_COPY.md`, `AGENTS_ISSUE_FLOW.md`, `questions`,
   `runs`, or `context.md`
 - when a repo already uses Lotus, preserve its existing Lotus artifacts unless

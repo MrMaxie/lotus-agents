@@ -12,19 +12,21 @@ operational files.
 
 1. read `.local/AGENTS.md` for `linear_team`, `linear_project`,
    `linear_flow_document`, `source_policy`, and `external_writes`
-2. read `.docs/AGENTS.md` and relevant `.docs/spec/` or `.docs/practices/`
-   files when present
-3. use Linear to inspect the configured project and flow document before
+2. use Linear to inspect the configured project, project resources, files, and
+   flow document before
    creating or updating operational state
-4. determine whether the task is local, self-generated, remote-ticket,
+3. determine whether the task is local, self-generated, remote-ticket,
    remote-PR-review, PR-note, review-answer, or CI-based
-5. fetch external context only when the human requested it, local/project rules
+4. fetch external context only when the human requested it, local/project rules
    require it, or the needed context is missing from Linear
 
 ## Source And Write Policy
 
 - Linear is the canonical operational store for this workflow
-- `.local/` is private configuration and machine-local context, not issue state
+- Linear project resources, documents, files, issues, and comments are the
+  durable project context for this workflow
+- `.local/` is private configuration and machine-local context, not issue or
+  project-document state
 - external systems are read-only by default
 - if `external_writes` is `disallowed-by-default`, do not write to Jira,
   GitHub, Azure DevOps, Confluence, or other remote systems without explicit
@@ -63,8 +65,9 @@ Do not guess, cache, or hardcode the mention.
   `assets/pr-note-proposal-template.md`
 - create or update project flow documents with
   `assets/linear-flow-document-template.md`
-- use project-local templates from `.docs/templates/` only when they are stricter
-  than the bundled template and preserve all required source/link fields
+- use project templates from configured Linear resources only when they are
+  stricter than the bundled template and preserve all required source/link
+  fields
 
 ## Voice
 

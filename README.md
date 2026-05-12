@@ -8,7 +8,7 @@ Lotus Agents is a simple way to structure human-agent work in a repository.
 Instead of putting everything in one place, it separates private working notes
 from durable project guidance:
 
-- `.local/` for local-first working state or Linear-backed private config
+- `.local/` for private working state or Linear-backed private config
 - `.docs/` for project knowledge worth keeping
 - Linear, optionally, for canonical operational issue and progress state
 
@@ -88,23 +88,19 @@ those branches split into subfiles. Prefer small linked entity docs over one
 large narrative page, keep them concise and in English, and call out code-facing
 names exactly as used together with the context they belong to.
 
-The Linear-backed variant keeps the same `.docs/` model but moves operational
-state to Linear:
+The Linear-backed variant keeps local private configuration in `.local/` and
+moves operational and durable project state to Linear:
 
 ```text
 repo/
   .local/
     AGENTS.md   # private Linear project configuration
-  .docs/
-    AGENTS.md
-    spec/
-    meetings/
-    templates/
 
 Linear/
   issues       # task descriptions, remote ticket clones, review clones
   comments     # progress, PR-note proposals, reviewer reply proposals
   documents    # project flow rules and recurring operational guidance
+  files        # project resources, specs, and durable context
 ```
 
 For that variant, Linear is the operational source of truth. `.local/` stores
@@ -118,8 +114,7 @@ project policy requires it.
 
 - **`lotus-agents`** - entrypoint skill that routes Lotus work to the right
   flow: setup, spec bootstrap, meeting promotion, or local-first
-  issue/PR/review/CI intake. It routes to the Linear variant when the human
-  asks for Linear-backed operational state.
+  issue/PR/review/CI intake.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents/lotus-local --skill lotus-agents
@@ -130,12 +125,11 @@ project policy requires it.
   "Use $lotus-agents and initialize the Lotus workflow in this repo."
   "Use $lotus-agents and bootstrap .docs/spec for the current project."
   "Use $lotus-agents and prepare Lotus artifacts for the existing local work on issue 456."
-  "Use $lotus-agents and route this repo to the Linear-backed variant."
   ```
 
 - **`lotus-linear-agents`** - entrypoint skill for the Linear-backed variant.
   It routes setup to `lotus-linear-init`, issue/PR/review/CI work to
-  `lotus-linear-intake`, and durable project docs to the shared `.docs` skills.
+  `lotus-linear-intake`, and durable project context to Linear resources.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-agents
@@ -165,9 +159,9 @@ project policy requires it.
   "Use $lotus-init and create .docs/practices as well."
   ```
 
-- **`lotus-linear-init`** - creates or merges `.local/AGENTS.md` and
-  `.docs/AGENTS.md` rules for Linear-backed operation. It keeps `.local/`
-  private and does not create local operational issue or PR-note stores.
+- **`lotus-linear-init`** - creates or merges `.local/AGENTS.md` rules for
+  Linear-backed operation. It keeps `.local/` private and does not create local
+  operational issue, review, project-doc, or PR-note stores.
 
   ```sh
   npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-init
@@ -273,12 +267,11 @@ If you do not want to install the skills, you can adopt Lotus manually:
 For the Linear-backed variant:
 
 1. copy `lotus-linear/lotus-linear-init/assets/local-agents.md` to `.local/AGENTS.md`
-2. copy `lotus-linear/lotus-linear-init/assets/docs-agents.md` to `.docs/AGENTS.md`
-3. fill in `linear_team`, `linear_project`, `linear_flow_document`,
+2. fill in `linear_team`, `linear_project`, `linear_flow_document`,
    `source_policy`, and `external_writes`
-4. add `.local/` to `.git/info/exclude` or `.gitignore`
-5. keep issue status, progress notes, review clones, and PR-note proposals in
-   Linear
+3. add `.local/` to `.git/info/exclude` or `.gitignore`
+4. keep issue status, progress notes, review clones, PR-note proposals, and
+   durable project context in Linear
 
 ## What Is In This Repo
 

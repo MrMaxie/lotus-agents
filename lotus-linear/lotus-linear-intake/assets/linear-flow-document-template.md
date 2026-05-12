@@ -33,5 +33,6 @@
 1. Read `.local/AGENTS.md`
 2. Read this document
 3. Inspect the target Linear issue or project
-4. Inspect relevant `.docs` files
+4. Inspect relevant Linear project resources, files, documents, issues, and
+   comments
 5. Read external sources only when required by policy or missing context
