@@ -35,7 +35,8 @@ npx skills@latest add MrMaxie/lotus-agents/lotus-linear --skill lotus-linear-age
 Restart Codex after installation.
 
 The repository also exposes a native plugin manifest in
-`.codex-plugin/plugin.json` if you prefer that installation path.
+`.codex-plugin/plugin.json` if you prefer to install both skill collections
+through Codex.
 
 ## Update All Skills
 

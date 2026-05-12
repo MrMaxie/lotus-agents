@@ -14,9 +14,10 @@
     "skills",
     "agents",
     "workflow",
-    "local-first"
+    "local-first",
+    "linear"
   ],
-  "skills": "./lotus-local",
+  "skills": "./",
   "interface": {
     "displayName": "Lotus Agents",
     "shortDescription": "Install the Lotus Agents skill collection.",
