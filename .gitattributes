@@ -1,0 +1,5 @@
+# Keep text artifacts stable across platforms. Git normalizes committed content
+# and checkout content to Unix line endings, even when core.autocrlf is enabled.
+* text=auto eol=lf
+
+*.webp binary
