@@ -14,6 +14,32 @@ from durable project guidance:
 
 ## Quick Start
 
+Run the executable CLI without installing it first:
+
+```bash
+npx @maxiedev/lotusagents --help
+```
+
+With Bun:
+
+```bash
+bunx @maxiedev/lotusagents --help
+```
+
+Install it globally when you want a persistent command:
+
+```bash
+npm install --global @maxiedev/lotusagents
+lotusagents --help
+```
+
+Or install it with Bun:
+
+```bash
+bun add --global @maxiedev/lotusagents
+lotus-agents --help
+```
+
 Install the main routing skill:
 
 ```bash
@@ -37,6 +63,12 @@ Restart Codex after installation.
 The repository also exposes a native plugin manifest in
 `.codex-plugin/plugin.json` if you prefer to install both skill collections
 through Codex.
+
+The CLI exposes both `lotusagents` and `lotus-agents` binaries. The current
+MAX-73 package routes `install`, `update`, `remove`, `doctor`, and `validate`
+commands and verifies that project-scoped commands run inside a Git
+repository. Full artifact installation, update, removal, and semantic repair
+flows belong to the broader MAX-72 installer work.
 
 ## Update All Skills
 
@@ -282,6 +314,8 @@ The most important pieces are:
   the main human entrypoint
 - `AGENTS.md`:
   working rules for this repository
+- `package.json`:
+  the publishable `@maxiedev/lotusagents` CLI package metadata
 - `lotus-local/`:
   the local-first skill package and its assets
 - `lotus-linear/`:

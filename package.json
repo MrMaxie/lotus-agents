@@ -1,0 +1,73 @@
+{
+  "name": "@maxiedev/lotusagents",
+  "version": "0.1.0",
+  "description": "Executable CLI package for Lotus Agents repository workflow installation and maintenance.",
+  "type": "module",
+  "bin": {
+    "lotusagents": "./dist/cli.js",
+    "lotus-agents": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "assets",
+    "lotus-local",
+    "lotus-linear",
+    ".codex-plugin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "check": "biome check .",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "format": "biome check --write .",
+    "lint": "biome lint .",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrMaxie/lotus-agents.git"
+  },
+  "keywords": [
+    "agents",
+    "codex",
+    "cli",
+    "workflow",
+    "linear"
+  ],
+  "author": {
+    "name": "MrMaxie",
+    "url": "https://github.com/MrMaxie"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/MrMaxie/lotus-agents/issues"
+  },
+  "homepage": "https://github.com/MrMaxie/lotus-agents#readme",
+  "dependencies": {
+    "@clack/prompts": "1.4.0",
+    "commander": "14.0.3",
+    "execa": "9.6.1",
+    "listr2": "9.0.5",
+    "picocolors": "1.1.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.15",
+    "@types/node": "25.7.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.6"
+  },
+  "engines": {
+    "node": ">=20.12.0"
+  }
+}
