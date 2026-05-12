@@ -62,6 +62,32 @@ If you change naming, paths, or adoption flow, review at least:
 - `lotus-linear/`
 - any affected skill directories under those package roots
 
+## Linear Issue Implementation Workflow
+
+Use this workflow when a human asks you to implement a Linear issue through
+GitHub PRs. It is for implementation work, not review-only or test-only tasks.
+
+1. Read the target Linear issue, parent issue or epic, existing PR links, and
+   relevant comments before changing code.
+2. Start from the current default branch. Fast-forward it from origin before
+   creating implementation branches.
+3. Create the epic integration branch from the default branch when the issue
+   belongs to an epic. If an immediate epic PR is required and the branch has no
+   code changes yet, use one empty conventional commit that opens the branch.
+4. Open the epic PR as a draft into the default branch and link it to the epic
+   issue in Linear.
+5. Create the feature branch from the epic branch. Name branches from the issue
+   identifier when the human provides one, but do not hardcode any specific
+   issue or epic IDs into this workflow.
+6. Move the Linear issue to the active implementation status before coding.
+7. Commit small, coherent work ranges with English conventional commit messages
+   without scopes, and push after each meaningful range.
+8. Keep repository docs and agent-facing rules aligned with code changes when
+   the change affects adoption flow, package usage, or workflow contracts.
+9. Run the relevant checks locally before opening the feature PR.
+10. Open the feature PR into the epic branch, link it to the Linear issue, add a
+    concise implementation summary, and move the issue to the review status.
+
 ## Source Of Truth For This Repo
 
 When working in this repository, use this order:
