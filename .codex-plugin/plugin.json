@@ -1,7 +1,7 @@
 {
   "name": "lotus-agents",
   "version": "0.1.0",
-  "description": "Bundle the Lotus Agents local-first and Linear-backed workflows as a reusable Codex skill collection.",
+  "description": "Bundle the Lotus Agents as a reusable Codex skill collection.",
   "author": {
     "name": "MrMaxie",
     "url": "https://github.com/MrMaxie"
@@ -14,15 +14,13 @@
     "skills",
     "agents",
     "workflow",
-    "local-first",
-    "linear",
-    "docs"
+    "local-first"
   ],
-  "skills": "./",
+  "skills": "./lotus-local",
   "interface": {
     "displayName": "Lotus Agents",
-    "shortDescription": "Install local-first or Linear-backed Lotus.",
-    "longDescription": "Bundle the Lotus Agents skill collection for adopting and operating local-first `.local` + `.docs` workflows or Linear-backed operational workflows across repositories.",
+    "shortDescription": "Install the Lotus Agents skill collection.",
+    "longDescription": "Bundle reusable Lotus Agents skills for structuring human-agent repository work.",
     "developerName": "MrMaxie",
     "category": "Productivity",
     "capabilities": [
@@ -31,9 +29,8 @@
     ],
     "websiteURL": "https://github.com/MrMaxie/lotus-agents",
     "defaultPrompt": [
-      "Use Lotus Agents to initialize .local and .docs.",
-      "Use Lotus Linear Agents to initialize a Linear-backed workflow.",
-      "Bootstrap .docs/spec for this repository.",
+      "Use Lotus Agents to initialize the repository workflow.",
+      "Bootstrap project specs for this repository.",
       "Prepare Lotus files for review or CI work, using remote context only when needed."
     ],
     "brandColor": "#1F7A6B"
