@@ -1,17 +1,17 @@
 export type OutputWriter = (message: string) => void;
 
-export interface CommandContext {
+export type CommandContext = {
   cwd: string;
   stdout: OutputWriter;
   stderr: OutputWriter;
-}
+};
 
-export interface CliResult {
+export type CliResult = {
   exitCode: number;
-}
+};
 
-export interface RepositoryState {
+export type RepositoryState = {
   cwd: string;
   root: string | null;
   isRepository: boolean;
-}
+};

@@ -1,7 +1,7 @@
-import { Command } from "commander";
-import { packageInfo } from "./package-info.js";
-import { runProjectCommand } from "./commands.js";
-import type { CliResult, CommandContext } from "./types.js";
+import { Command } from 'commander';
+import { runProjectCommand } from './commands.js';
+import { packageInfo } from './packageInfo.js';
+import type { CliResult, CommandContext } from './types.js';
 
 const exitCodeStore = new WeakMap<Command, number>();
 
@@ -9,7 +9,7 @@ export function buildProgram(context: CommandContext): Command {
   const program = new Command();
 
   program
-    .name("lotusagents")
+    .name('lotusagents')
     .description(packageInfo.description)
     .version(packageInfo.version)
     .showHelpAfterError()
@@ -17,17 +17,17 @@ export function buildProgram(context: CommandContext): Command {
     .configureOutput({
       writeOut: (message) => context.stdout(message),
       writeErr: (message) => context.stderr(message),
-      outputError: (message, write) => write(message)
+      outputError: (message, write) => write(message),
     });
 
-  for (const command of ["install", "update", "remove", "doctor", "validate"] as const) {
+  for (const command of ['install', 'update', 'remove', 'doctor', 'validate'] as const) {
     program
       .command(command)
       .description(`Route the LotusAgents ${command} workflow for the current repository.`)
       .action(async () => {
         context.stdout(`LotusAgents ${command}\n`);
         const result = await runProjectCommand(command, context);
-        context.stdout(result.exitCode === 0 ? "Done.\n" : "Command stopped.\n");
+        context.stdout(result.exitCode === 0 ? 'Done.\n' : 'Command stopped.\n');
         exitCodeStore.set(program, result.exitCode);
       });
   }
@@ -35,14 +35,11 @@ export function buildProgram(context: CommandContext): Command {
   return program;
 }
 
-export async function runCli(
-  argv = process.argv,
-  options: Partial<CommandContext> = {}
-): Promise<CliResult> {
+export async function runCli(argv = process.argv, options: Partial<CommandContext> = {}): Promise<CliResult> {
   const context: CommandContext = {
     cwd: options.cwd ?? process.cwd(),
     stdout: options.stdout ?? ((message) => process.stdout.write(message)),
-    stderr: options.stderr ?? ((message) => process.stderr.write(message))
+    stderr: options.stderr ?? ((message) => process.stderr.write(message)),
   };
 
   const program = buildProgram(context);
@@ -62,11 +59,11 @@ export async function runCli(
 
 function isCommanderExit(error: unknown): error is { code: string; exitCode: number } {
   return (
-    typeof error === "object" &&
+    typeof error === 'object' &&
     error !== null &&
-    "code" in error &&
-    "exitCode" in error &&
-    typeof (error as { code: unknown }).code === "string" &&
-    typeof (error as { exitCode: unknown }).exitCode === "number"
+    'code' in error &&
+    'exitCode' in error &&
+    typeof (error as { code: unknown }).code === 'string' &&
+    typeof (error as { exitCode: unknown }).exitCode === 'number'
   );
 }

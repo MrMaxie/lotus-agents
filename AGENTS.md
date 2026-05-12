@@ -38,6 +38,22 @@ When changing the contract or adoption story:
 7. keep reusable templates in the relevant skill assets or in consumer
    `.docs/templates/`, not in one legacy copy artifact
 
+## Code Style
+
+- Name files in camelCase by default.
+- Name files that define classes or components in PascalCase.
+- Prefer named exports; use default exports only when a tool or framework
+  requires them.
+- Prefer TypeScript `type` aliases over `interface` declarations unless an
+  interface is required.
+- Use single quotes for strings outside JSX. Use double quotes for JSX and HTML
+  attributes unless that is not practical.
+- Use trailing commas wherever the syntax allows them to reduce future diffs.
+- Keep line width at 140 columns, not 80.
+- Always use semicolons.
+- Run Biome through the package scripts when editing JavaScript, TypeScript,
+  JSON, or JSONC files.
+
 ## Write For The Actual Reader
 
 Keep each artifact scoped to the reader that will actually use it:

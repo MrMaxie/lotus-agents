@@ -1,23 +1,23 @@
-import { execa } from "execa";
-import type { RepositoryState } from "./types.js";
+import { execa } from 'execa';
+import type { RepositoryState } from './types.js';
 
 export async function detectRepository(cwd: string): Promise<RepositoryState> {
   try {
-    const result = await execa("git", ["rev-parse", "--show-toplevel"], {
+    const result = await execa('git', ['rev-parse', '--show-toplevel'], {
       cwd,
-      reject: true
+      reject: true,
     });
 
     return {
       cwd,
       root: result.stdout.trim(),
-      isRepository: true
+      isRepository: true,
     };
   } catch {
     return {
       cwd,
       root: null,
-      isRepository: false
+      isRepository: false,
     };
   }
 }
