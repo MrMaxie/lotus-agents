@@ -65,10 +65,11 @@ The repository also exposes a native plugin manifest in
 through Codex.
 
 The CLI exposes both `lotusagents` and `lotus-agents` binaries. The current
-MAX-73 package routes `install`, `update`, `remove`, `doctor`, and `validate`
-commands and verifies that project-scoped commands run inside a Git
-repository. Full artifact installation, update, removal, and semantic repair
-flows belong to the broader MAX-72 installer work.
+MAX-74 package orchestrates `install`, `update`, `remove`, `doctor`, and
+`validate` commands inside a Git repository. `install` starts a fresh install
+when no Lotus-managed state is present and routes to update when existing state
+is detected. `update` offers the safe actions Update, Remove, and Cancel.
+`remove` only deletes known Lotus-managed project artifacts.
 
 ## Update All Skills
 

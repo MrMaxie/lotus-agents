@@ -1,9 +1,15 @@
 export type OutputWriter = (message: string) => void;
 
+export type WorkflowAction = 'update' | 'remove' | 'cancel';
+export type RemoveScope = 'all' | 'local' | 'docs';
+
 export type CommandContext = {
   cwd: string;
   stdout: OutputWriter;
   stderr: OutputWriter;
+  isInteractive?: boolean;
+  updateAction?: WorkflowAction;
+  removeScope?: RemoveScope;
 };
 
 export type CliResult = {

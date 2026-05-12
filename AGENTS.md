@@ -90,7 +90,7 @@ GitHub PRs. It is for implementation work, not review-only or test-only tasks.
 3. Create the epic integration branch from the default branch when the issue
    belongs to an epic. If an immediate epic PR is required and the branch has no
    code changes yet, use one empty conventional commit that opens the branch.
-4. Open the epic PR as a draft into the default branch and link it to the epic
+4. Open the epic PR as a regular, non-draft PR into the default branch and link it to the epic
    issue in Linear.
 5. Create the feature branch from the epic branch. Name branches from the issue
    identifier when the human provides one, but do not hardcode any specific
@@ -101,8 +101,9 @@ GitHub PRs. It is for implementation work, not review-only or test-only tasks.
 8. Keep repository docs and agent-facing rules aligned with code changes when
    the change affects adoption flow, package usage, or workflow contracts.
 9. Run the relevant checks locally before opening the feature PR.
-10. Open the feature PR into the epic branch, link it to the Linear issue, add a
-    concise implementation summary, and move the issue to the review status.
+10. Open the feature PR into the epic branch as a regular, non-draft PR, link
+    it to the Linear issue, add a concise implementation summary, and move the
+    issue to the review status.
 
 ## Source Of Truth For This Repo
 
