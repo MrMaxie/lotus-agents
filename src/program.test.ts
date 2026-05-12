@@ -351,6 +351,67 @@ describe('LotusAgents CLI', () => {
     }
   });
 
+  it('routes damaged Lotus artifacts to repair guidance without overwriting by default', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd);
+
+      const damagedContent = '---\nlotus: [\n---\n# Broken metadata\n\nCustom project notes.\n';
+      await createFile(cwd, '.docs/AGENTS.md', damagedContent);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: 'update',
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const currentContent = await readFile(join(cwd, '.docs/AGENTS.md'), 'utf8');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Repair workflow required for damaged Lotus-managed artifacts.');
+      expect(output).toContain('lotusagents update --force');
+      expect(output).toContain('Forced reinstall will replace user-editable managed artifacts');
+      expect(currentContent).toBe(damagedContent);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('force reinstalls known Lotus artifacts from bundled templates', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd);
+      await createFile(cwd, '.docs/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: 'update',
+        forceReinstall: true,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const docsAgents = await readFile(join(cwd, '.docs/AGENTS.md'), 'utf8');
+      const specManifest = await readFile(join(cwd, '.docs/spec/.lotus.json'), 'utf8');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Forced reinstall workflow.');
+      expect(output).toContain('Warn before replacing user-editable managed artifacts');
+      expect(output).toContain('Reinstalled .docs/AGENTS.md.');
+      expect(docsAgents).toContain('# Durable Agent Rules');
+      expect(specManifest).toContain('"artifactType": "spec-store"');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
   it('reports externally broken Codex config as out of Lotus repair scope', async ({ task }) => {
     const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
 
@@ -370,6 +431,34 @@ describe('LotusAgents CLI', () => {
       expect(result.exitCode).toBe(0);
       expect(output).toContain('State: external-corruption (external-config-invalid)');
       expect(output).toContain('outside Lotus repair scope');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('blocks update and force repair when external configuration is broken', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd);
+      await createFile(cwd, '.codex/config.toml', '[broken\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: 'update',
+        forceReinstall: true,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('External configuration is broken outside Lotus repair scope.');
+      expect(output).toContain('external-config-invalid');
+      expect(output).toContain('No Lotus repair changes applied.');
+      expect(output).not.toContain('Reinstalled .docs/AGENTS.md.');
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
