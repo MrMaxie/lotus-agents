@@ -59,6 +59,8 @@
     "execa": "9.6.1",
     "listr2": "9.0.5",
     "picocolors": "1.1.1",
+    "smol-toml": "1.4.2",
+    "yaml": "2.8.1",
     "zod": "4.4.3"
   },
   "devDependencies": {

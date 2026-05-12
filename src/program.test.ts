@@ -3,7 +3,14 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
-import { lotusArtifactMetadataSchema, lotusManifest, lotusManifestSchema, managedArtifacts } from './manifest.js';
+import {
+  lotusArtifactContentVersion,
+  lotusArtifactMetadataSchema,
+  lotusManifest,
+  lotusManifestSchema,
+  type ManagedArtifact,
+  managedArtifacts,
+} from './manifest.js';
 import { buildProgram, runCli } from './program.js';
 
 function createWriters() {
@@ -29,6 +36,35 @@ async function createFile(cwd: string, path: string, content = ''): Promise<void
 
 async function createDirectory(cwd: string, path: string): Promise<void> {
   await mkdir(join(cwd, path), { recursive: true });
+}
+
+async function createManagedArtifact(
+  cwd: string,
+  artifact: ManagedArtifact,
+  metadataOverrides: Record<string, unknown> = {},
+): Promise<void> {
+  const metadata = {
+    ...artifact.metadata,
+    ...metadataOverrides,
+  };
+
+  if (artifact.kind === 'directory') {
+    await createDirectory(cwd, artifact.path);
+    await writeFile(join(cwd, artifact.path, '.lotus.json'), `${JSON.stringify({ metadata }, null, 2)}\n`);
+    return;
+  }
+
+  await createFile(
+    cwd,
+    artifact.path,
+    `---\n${JSON.stringify(metadata, null, 2)}\n---\n# Managed ${artifact.path}\n\nUnrelated local content.\n`,
+  );
+}
+
+async function createManagedArtifacts(cwd: string, overridesByPath: Record<string, Record<string, unknown>> = {}): Promise<void> {
+  for (const artifact of managedArtifacts) {
+    await createManagedArtifact(cwd, artifact, overridesByPath[artifact.path]);
+  }
 }
 
 async function expectPathExists(cwd: string, path: string): Promise<void> {
@@ -93,6 +129,7 @@ describe('LotusAgents CLI', () => {
       expect(result.exitCode).toBe(0);
       expect(writers.stdout.join('')).toContain('Inspect managed Lotus project state');
       expect(writers.stdout.join('')).toContain('Manifest schema: v1');
+      expect(writers.stdout.join('')).toContain('State: missing (managed-artifacts-missing)');
       expect(writers.stdout.join('')).toContain('Repository:');
     } finally {
       await rm(cwd, { recursive: true, force: true });
@@ -144,6 +181,132 @@ describe('LotusAgents CLI', () => {
         ],
       }).success,
     ).toBe(false);
+  });
+
+  it('validates current Lotus metadata without comparing entire file content', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd);
+      await createFile(
+        cwd,
+        '.docs/AGENTS.md',
+        `---\n${JSON.stringify(managedArtifacts[5].metadata, null, 2)}\n---\n# Docs guidance\n\nCustom project notes.\n`,
+      );
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: valid (managed-artifacts-valid)');
+      expect(output).not.toContain('Diagnostics:');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('reports outdated Lotus metadata versions', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd, {
+        '.docs/AGENTS.md': {
+          contentVersion: '0.0.0',
+        },
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: outdated (managed-artifacts-outdated)');
+      expect(output).toContain(`expected v1 and content ${lotusArtifactContentVersion}`);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('reports partial Lotus installation when expected artifacts are missing', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifact(cwd, managedArtifacts[5]);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: partially-installed (managed-artifacts-partial)');
+      expect(output).toContain('Detected managed artifacts: .docs/AGENTS.md');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('reports damaged Lotus metadata blocks separately from unrelated content', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd);
+      await createFile(cwd, '.docs/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n\nCustom project notes.\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: damaged-lotus-artifact (artifact-metadata-invalid)');
+      expect(output).toContain('Invalid Lotus metadata frontmatter');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('reports externally broken Codex config as out of Lotus repair scope', async ({ task }) => {
+    const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-`));
+
+    try {
+      await execa('git', ['init'], { cwd });
+      await createManagedArtifacts(cwd);
+      await createFile(cwd, '.codex/config.toml', '[broken\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: external-corruption (external-config-invalid)');
+      expect(output).toContain('outside Lotus repair scope');
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
   });
 
   it('starts fresh install when no managed state exists', async ({ task }) => {
