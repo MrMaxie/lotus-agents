@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { runProjectCommand } from './commands';
+import { projectCommandSchema, runProjectCommand } from './commands';
 import { packageInfo } from './packageInfo';
 import type { CliResult, CommandContext } from './types';
 
@@ -20,7 +20,7 @@ export function buildProgram(context: CommandContext): Command {
       outputError: (message, write) => write(message),
     });
 
-  for (const command of ['install', 'update', 'remove', 'doctor', 'validate'] as const) {
+  for (const command of projectCommandSchema.options) {
     const projectCommand = program.command(command).description(`Route the LotusAgents ${command} workflow for the current repository.`);
 
     if (command === 'install' || command === 'update') {

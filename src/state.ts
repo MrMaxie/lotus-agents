@@ -17,22 +17,35 @@ import {
 } from './manifest';
 import type { RepositoryState } from './types';
 
-export type LotusStateStatus = 'missing' | 'valid' | 'outdated' | 'partially-installed' | 'damaged-lotus-artifact' | 'external-corruption';
+export const lotusStateStatusSchema = z.enum([
+  'missing',
+  'valid',
+  'outdated',
+  'partially-installed',
+  'damaged-lotus-artifact',
+  'external-corruption',
+]);
+export const lotusValidationReasonCodeSchema = z.enum([
+  'managed-artifacts-missing',
+  'managed-artifacts-valid',
+  'managed-artifacts-outdated',
+  'managed-artifacts-partial',
+  'artifact-kind-mismatch',
+  'artifact-metadata-missing',
+  'artifact-metadata-invalid',
+  'external-config-invalid',
+]);
+const artifactFilesystemKindSchema = z.enum(['file', 'directory']);
+const lotusArtifactDamageReasonCodeSchema = z.enum(['artifact-kind-mismatch', 'artifact-metadata-missing', 'artifact-metadata-invalid']);
 
-export type LotusValidationReasonCode =
-  | 'managed-artifacts-missing'
-  | 'managed-artifacts-valid'
-  | 'managed-artifacts-outdated'
-  | 'managed-artifacts-partial'
-  | 'artifact-kind-mismatch'
-  | 'artifact-metadata-missing'
-  | 'artifact-metadata-invalid'
-  | 'external-config-invalid';
+export type LotusStateStatus = z.infer<typeof lotusStateStatusSchema>;
+export type LotusValidationReasonCode = z.infer<typeof lotusValidationReasonCodeSchema>;
+type ArtifactFilesystemKind = z.infer<typeof artifactFilesystemKindSchema>;
 
 export type ArtifactKindMismatch = {
   path: string;
-  expectedKind: 'file' | 'directory';
-  actualKind: 'file' | 'directory';
+  expectedKind: ArtifactFilesystemKind;
+  actualKind: ArtifactFilesystemKind;
 };
 
 export type LotusStateDiagnostic = {
@@ -107,7 +120,7 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
 
   try {
     const stats = await lstat(absolutePath);
-    const actualKind: 'directory' | 'file' = stats.isDirectory() ? 'directory' : 'file';
+    const actualKind = artifactFilesystemKindSchema.parse(stats.isDirectory() ? 'directory' : 'file');
 
     if (actualKind !== artifact.kind) {
       const kindMismatch = {
@@ -344,8 +357,8 @@ function summarizeState(input: {
     const damagedDiagnostics = artifactStates
       .filter((artifact) => artifact.status === 'damaged-lotus-artifact')
       .flatMap((artifact) => artifact.diagnostics);
-    const damagedDiagnostic = damagedDiagnostics.find((diagnostic) =>
-      ['artifact-kind-mismatch', 'artifact-metadata-missing', 'artifact-metadata-invalid'].includes(diagnostic.reasonCode),
+    const damagedDiagnostic = damagedDiagnostics.find(
+      (diagnostic) => lotusArtifactDamageReasonCodeSchema.safeParse(diagnostic.reasonCode).success,
     );
 
     return createState(

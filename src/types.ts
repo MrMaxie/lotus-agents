@@ -1,7 +1,12 @@
+import { z } from 'zod';
+
 export type OutputWriter = (message: string) => void;
 
-export type WorkflowAction = 'update' | 'remove' | 'cancel';
-export type RemoveScope = 'all' | 'local' | 'docs';
+export const workflowActionSchema = z.enum(['update', 'remove', 'cancel']);
+export const removeScopeSchema = z.enum(['all', 'local', 'docs']);
+
+export type WorkflowAction = z.infer<typeof workflowActionSchema>;
+export type RemoveScope = z.infer<typeof removeScopeSchema>;
 
 export type CommandContext = {
   cwd: string;

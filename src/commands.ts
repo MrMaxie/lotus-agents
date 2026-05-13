@@ -4,24 +4,37 @@ import { fileURLToPath } from 'node:url';
 import { cancel, isCancel, select } from '@clack/prompts';
 import { Listr } from 'listr2';
 import pc from 'picocolors';
+import { z } from 'zod';
 import { getManagedArtifact, lotusManifest, type ManagedArtifact, managedArtifacts } from './manifest';
 import { detectRepository } from './repository';
 import { detectLotusState, type LotusState } from './state';
-import type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types';
+import {
+  type CliResult,
+  type CommandContext,
+  type RemoveScope,
+  type RepositoryState,
+  removeScopeSchema,
+  type WorkflowAction,
+  workflowActionSchema,
+} from './types';
 
-type ProjectCommand = 'install' | 'update' | 'remove' | 'doctor' | 'validate';
+export const projectCommandSchema = z.enum(['install', 'update', 'remove', 'doctor', 'validate']);
+export const docsModeSchema = z.enum(['committed', 'local-only']);
+const workflowModeSchema = z.enum([
+  'fresh-install',
+  'detected-update',
+  'explicit-update',
+  'repair-guidance',
+  'force-reinstall',
+  'remove',
+  'cancel',
+  'diagnose',
+  'blocked',
+]);
 
-type WorkflowMode =
-  | 'fresh-install'
-  | 'detected-update'
-  | 'explicit-update'
-  | 'repair-guidance'
-  | 'force-reinstall'
-  | 'remove'
-  | 'cancel'
-  | 'diagnose'
-  | 'blocked';
-type DocsMode = 'committed' | 'local-only';
+export type ProjectCommand = z.infer<typeof projectCommandSchema>;
+type WorkflowMode = z.infer<typeof workflowModeSchema>;
+type DocsMode = z.infer<typeof docsModeSchema>;
 
 type InstallationConfiguration = {
   docsMode: DocsMode;
@@ -62,12 +75,13 @@ const reinstallAssetsByPath: Record<string, { sourcePath: string; targetFileName
 };
 
 export async function runProjectCommand(command: ProjectCommand, context: CommandContext): Promise<CliResult> {
+  const parsedCommand = projectCommandSchema.parse(command);
   const repository = await detectRepository(context.cwd);
 
   if (!repository.isRepository) {
     context.stderr(
       [
-        pc.red(`Cannot run '${command}' outside a Git repository.`),
+        pc.red(`Cannot run '${parsedCommand}' outside a Git repository.`),
         'Run this command from a project repository, or use --help/--version for global CLI information.',
       ].join('\n'),
     );
@@ -76,7 +90,7 @@ export async function runProjectCommand(command: ProjectCommand, context: Comman
   }
 
   const state = await detectLotusState(repository);
-  const plan = await createWorkflowPlan(command, repository, state, context);
+  const plan = await createWorkflowPlan(parsedCommand, repository, state, context);
 
   renderPlanSummary(plan, context);
 
@@ -307,7 +321,7 @@ async function createRemovePlan(
 
 async function resolveUpdateAction(context: CommandContext): Promise<WorkflowAction> {
   if (context.updateAction !== undefined) {
-    return context.updateAction;
+    return workflowActionSchema.parse(context.updateAction);
   }
 
   const isInteractive = context.isInteractive ?? process.stdin.isTTY;
@@ -335,7 +349,7 @@ async function resolveUpdateAction(context: CommandContext): Promise<WorkflowAct
 
 async function resolveRemoveScope(context: CommandContext, state: LotusState): Promise<RemoveScope | 'cancel'> {
   if (context.removeScope !== undefined) {
-    return context.removeScope;
+    return removeScopeSchema.parse(context.removeScope);
   }
 
   const isInteractive = context.isInteractive ?? process.stdin.isTTY;

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
+import { projectCommandSchema } from './commands';
 import {
   lotusArtifactContentVersion,
   lotusArtifactMetadataSchema,
@@ -448,7 +449,9 @@ describe('LotusAgents CLI', () => {
   });
 
   it('keeps fresh install available when only external configuration is broken', async ({ task }) => {
-    for (const command of ['install', 'update'] as const) {
+    for (const command of projectCommandSchema.options.filter(
+      (projectCommand) => projectCommand === 'install' || projectCommand === 'update',
+    )) {
       const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-${command}-`));
 
       try {
