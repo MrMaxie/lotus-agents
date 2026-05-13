@@ -1,0 +1,288 @@
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { ProjectCommand, projectCommandSchema } from '../commands';
+import { lotusArtifactContentVersion } from '../manifest';
+import { runCli } from '../program';
+import { WorkflowAction } from '../types';
+import {
+  cleanupTempDirectory,
+  createFile,
+  createManagedArtifacts,
+  createTempRepository,
+  createWriters,
+  readRepositoryFile,
+} from './helpers';
+
+describe('CLI e2e: update and validation workflows', () => {
+  it('reports outdated Lotus metadata versions', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createManagedArtifacts(cwd, {
+        '.docs/AGENTS.md': {
+          contentVersion: '0.0.0',
+        },
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('State: outdated (managed-artifacts-outdated)');
+      expect(output).toContain(`expected v1 and content ${lotusArtifactContentVersion}`);
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('routes damaged Lotus artifacts to repair guidance without overwriting by default', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createManagedArtifacts(cwd);
+
+      const damagedContent = '---\nlotus: [\n---\n# Broken metadata\n\nCustom project notes.\n';
+      await createFile(cwd, '.docs/AGENTS.md', damagedContent);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const currentContent = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Repair workflow required for damaged Lotus-managed artifacts.');
+      expect(output).toContain('lotusagents update --force');
+      expect(output).toContain('Forced reinstall will replace user-editable managed artifacts');
+      expect(currentContent).toBe(damagedContent);
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('force reinstalls known Lotus artifacts from bundled templates', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createManagedArtifacts(cwd);
+      await createFile(cwd, '.docs/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n');
+      await createFile(cwd, '.docs/spec/_toc.md', '# Spec index\n\nKeep this project state.\n');
+      await createFile(cwd, '.docs/templates/spec.md', '# Project spec template\n');
+      await createFile(cwd, '.local/issues/MAX-1.md', '# Local issue notes\n');
+      await rm(join(cwd, '.docs/spec/.lotus.json'), { recursive: true, force: true });
+      await createFile(cwd, '.docs/spec/.lotus.json/nested.md', '# Wrong metadata shape\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        forceReinstall: true,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const docsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const specManifest = await readRepositoryFile(cwd, '.docs/spec/.lotus.json');
+      const specIndex = await readRepositoryFile(cwd, '.docs/spec/_toc.md');
+      const specTemplate = await readRepositoryFile(cwd, '.docs/templates/spec.md');
+      const issueNotes = await readRepositoryFile(cwd, '.local/issues/MAX-1.md');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Forced reinstall workflow.');
+      expect(output).toContain('Warn before replacing user-editable managed artifacts');
+      expect(output).toContain('Reinstalled .docs/AGENTS.md.');
+      expect(docsAgents).toContain('# Durable Agent Rules');
+      expect(specManifest).toContain('"artifactType": "spec-store"');
+      expect(specIndex).toContain('Keep this project state.');
+      expect(specTemplate).toContain('Project spec template');
+      expect(issueNotes).toContain('Local issue notes');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('keeps fresh install available when only external configuration is broken', async ({ task }) => {
+    for (const command of projectCommandSchema.options.filter(
+      (projectCommand) => projectCommand === ProjectCommand.Install || projectCommand === ProjectCommand.Update,
+    )) {
+      const cwd = await createTempRepository(`${task.id}-${command}`);
+
+      try {
+        await createFile(cwd, '.codex/config.toml', '[broken\n');
+
+        const writers = createWriters();
+        const result = await runCli(['node', 'lotusagents', command], {
+          cwd,
+          updateAction: WorkflowAction.Update,
+          forceReinstall: true,
+          ...writers.context,
+        });
+
+        const output = writers.stdout.join('');
+
+        expect(result.exitCode).toBe(0);
+        expect(output).toContain(
+          command === ProjectCommand.Install
+            ? 'Fresh install workflow.'
+            : 'No existing Lotus state detected; running fresh install workflow.',
+        );
+        expect(output).not.toContain('External configuration is broken outside Lotus repair scope.');
+        expect(output).not.toContain('No Lotus repair changes applied.');
+      } finally {
+        await cleanupTempDirectory(cwd);
+      }
+    }
+  });
+
+  it('blocks update and force repair when external configuration is broken', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createManagedArtifacts(cwd);
+      await createFile(cwd, '.codex/config.toml', '[broken\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        forceReinstall: true,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('External configuration is broken outside Lotus repair scope.');
+      expect(output).toContain('external-config-invalid');
+      expect(output).toContain('No Lotus repair changes applied.');
+      expect(output).not.toContain('Reinstalled .docs/AGENTS.md.');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('routes install to update when managed state exists', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, '.docs/AGENTS.md', '# Project guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Existing Lotus state detected; running update workflow.');
+      expect(output).toContain('.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('routes existing-state install through update action selection', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, '.docs/AGENTS.md', '# Project guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        updateAction: WorkflowAction.Cancel,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Update canceled before applying changes.');
+      expect(output).toContain('No changes applied.');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('routes update without managed state into fresh install configuration', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Remove,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('No existing Lotus state detected; running fresh install workflow.');
+      expect(output).toContain('Installation configuration:');
+      expect(output).not.toContain('Existing Lotus state detected. Choose the next action.');
+      expect(output).not.toContain('Remove workflow');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('prefills update configuration from detected state', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, '.docs/AGENTS.md', '# Project guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Installation configuration:');
+      expect(output).toContain('.docs mode: committed');
+      expect(output).toContain('Prefilled from detected .docs artifacts: .docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('supports canceling update before applying changes', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, '.docs/AGENTS.md', '# Project guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Cancel,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Update canceled before applying changes.');
+      expect(output).toContain('No changes applied.');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+});
