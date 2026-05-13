@@ -6,8 +6,23 @@ import { Listr } from 'listr2';
 import pc from 'picocolors';
 import { match } from 'ts-pattern';
 import { z } from 'zod';
+import {
+  type AgentConfiguration,
+  createAgentConfiguration,
+  formatAgents,
+  formatDetectedAgents,
+  removeAgentArtifacts,
+  writeSelectedAgentArtifacts,
+} from './agents';
 import { enumValues } from './enumValues';
-import { getManagedArtifact, lotusManifest, type ManagedArtifact, ManagedArtifactScope, managedArtifacts } from './manifest';
+import {
+  getManagedArtifact,
+  type LotusAgent,
+  lotusManifest,
+  type ManagedArtifact,
+  ManagedArtifactScope,
+  managedArtifacts,
+} from './manifest';
 import { detectRepository } from './repository';
 import { detectLotusState, type LotusState, LotusStateStatus } from './state';
 import {
@@ -51,6 +66,7 @@ export const docsModeSchema = z.enum(enumValues(DocsMode));
 type InstallationConfiguration = {
   docsMode: DocsMode;
   detectedDocsArtifacts: string[];
+  agents: AgentConfiguration;
 };
 
 type WorkflowPlan = {
@@ -65,6 +81,8 @@ type WorkflowPlan = {
   removeScope?: RemoveScope;
   selectedManagedPaths?: string[];
   forceReinstallArtifacts?: ManagedArtifact[];
+  selectedAgentsForRemoval?: LotusAgent[];
+  shouldRemoveAgentArtifacts?: boolean;
 };
 
 const diagnosticMessages: Record<ProjectCommand.Doctor | ProjectCommand.Validate, string> = {
@@ -129,11 +147,17 @@ async function createWorkflowPlan(
         return createUpdateActionPlan(command, repository, state, context, WorkflowMode.DetectedUpdate);
       }
 
-      return createFreshInstallPlan(command, repository, state);
+      return createFreshInstallPlan(command, repository, state, context);
     })
     .with(ProjectCommand.Update, () => {
       if (!state.hasManagedState) {
-        return createFreshInstallPlan(command, repository, state, 'No existing Lotus state detected; running fresh install workflow.');
+        return createFreshInstallPlan(
+          command,
+          repository,
+          state,
+          context,
+          'No existing Lotus state detected; running fresh install workflow.',
+        );
       }
 
       return createUpdateActionPlan(command, repository, state, context, WorkflowMode.ExplicitUpdate);
@@ -203,7 +227,7 @@ async function createUpdateActionPlan(
     return createRepairGuidancePlan(command, repository, state);
   }
 
-  const configuration = createInstallationConfiguration(state);
+  const configuration = await createInstallationConfiguration(repository, state, context);
 
   return {
     command,
@@ -282,9 +306,10 @@ function createFreshInstallPlan(
   command: ProjectCommand,
   repository: RepositoryState,
   state: LotusState,
+  context: CommandContext,
   title = 'Fresh install workflow.',
-): WorkflowPlan {
-  return {
+): Promise<WorkflowPlan> {
+  return createInstallationConfiguration(repository, state, context).then((configuration) => ({
     command,
     mode: WorkflowMode.FreshInstall,
     title,
@@ -292,13 +317,15 @@ function createFreshInstallPlan(
       'Prepare local Lotus project artifacts in this repository.',
       'Keep project artifacts local even when the CLI is run globally.',
       'Configure .docs visibility from the repository adoption choice.',
+      'Detect likely available coding agents and report what was found.',
+      'Generate selected agent entrypoint files using common-first conventions.',
       'Leave private values out of package templates and public docs.',
     ],
     resultMessage: 'Install workflow completed.',
     state,
     repository,
-    configuration: createInstallationConfiguration(state),
-  };
+    configuration,
+  }));
 }
 
 async function createRemovePlan(
@@ -336,6 +363,8 @@ async function createRemovePlan(
     repository,
     removeScope,
     selectedManagedPaths,
+    selectedAgentsForRemoval: context.selectedAgents,
+    shouldRemoveAgentArtifacts: context.noAgentArtifacts !== true,
   };
 }
 
@@ -426,6 +455,8 @@ function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): void {
         plan.configuration.detectedDocsArtifacts.length > 0 ? plan.configuration.detectedDocsArtifacts.join(', ') : 'none'
       }\n`,
     );
+    context.stdout(`- Detected agents: ${formatDetectedAgents(plan.configuration.agents.detections)}\n`);
+    context.stdout(`- Selected agents: ${formatAgents(plan.configuration.agents.selectedAgents)}\n`);
   }
 
   if (plan.removeScope !== undefined) {
@@ -462,23 +493,40 @@ async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
           }
 
           if (plan.mode !== WorkflowMode.Remove) {
-            appliedChanges.push('No filesystem changes were required for this orchestration step.');
+            if (plan.repository.root !== null && plan.configuration !== undefined) {
+              appliedChanges.push(
+                ...(await writeSelectedAgentArtifacts(plan.repository.root, plan.configuration.agents.selectedArtifacts)),
+              );
+            }
+
+            if (appliedChanges.length === 0) {
+              appliedChanges.push('No filesystem changes were required for this orchestration step.');
+            }
+
             return;
           }
 
           const selectedManagedPaths = plan.selectedManagedPaths ?? plan.state.managedPaths;
 
-          if (plan.repository.root === null || selectedManagedPaths.length === 0) {
+          if (plan.repository.root === null) {
             appliedChanges.push('No managed artifacts were present.');
             return;
           }
 
-          for (const managedPath of selectedManagedPaths) {
-            const absolutePath = join(plan.repository.root, managedPath);
-            const stats = await lstat(absolutePath);
+          if (selectedManagedPaths.length === 0) {
+            appliedChanges.push('No managed artifacts were present.');
+          } else {
+            for (const managedPath of selectedManagedPaths) {
+              const absolutePath = join(plan.repository.root, managedPath);
+              const stats = await lstat(absolutePath);
 
-            await rm(absolutePath, { force: true, recursive: stats.isDirectory() });
-            appliedChanges.push(`Removed ${managedPath}.`);
+              await rm(absolutePath, { force: true, recursive: stats.isDirectory() });
+              appliedChanges.push(`Removed ${managedPath}.`);
+            }
+          }
+
+          if (plan.shouldRemoveAgentArtifacts === true) {
+            appliedChanges.push(...(await removeAgentArtifacts(plan.repository.root, plan.selectedAgentsForRemoval)));
           }
         },
       },
@@ -535,14 +583,27 @@ function renderResultSummary(plan: WorkflowPlan, appliedChanges: string[], conte
   }
 }
 
-function createInstallationConfiguration(state: LotusState): InstallationConfiguration {
+async function createInstallationConfiguration(
+  repository: RepositoryState,
+  state: LotusState,
+  context: CommandContext,
+): Promise<InstallationConfiguration> {
   const detectedDocsArtifacts = state.managedPaths.filter(
     (managedPath) => getManagedArtifact(managedPath)?.scope === ManagedArtifactScope.Docs,
   );
+  const agents =
+    repository.root === null
+      ? {
+          detections: [],
+          selectedAgents: [],
+          selectedArtifacts: [],
+        }
+      : await createAgentConfiguration(repository.root, context);
 
   return {
     docsMode: detectedDocsArtifacts.length > 0 ? DocsMode.Committed : DocsMode.LocalOnly,
     detectedDocsArtifacts,
+    agents,
   };
 }
 

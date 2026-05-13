@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { ProjectCommand, projectCommandSchema, runProjectCommand } from './commands';
+import { type LotusAgent, lotusAgentSchema } from './manifest';
 import { packageInfo } from './packageInfo';
 import type { CliResult, CommandContext } from './types';
 
@@ -27,15 +28,25 @@ export function buildProgram(context: CommandContext): Command {
       projectCommand.option('--force', 'Force reinstall known Lotus-managed artifacts when repair is needed.');
     }
 
-    projectCommand.action(async (options: { force?: boolean } = {}) => {
-      context.stdout(`LotusAgents ${command}\n`);
-      const result = await runProjectCommand(command, {
-        ...context,
-        forceReinstall: context.forceReinstall === true || options.force === true,
-      });
-      context.stdout(result.exitCode === 0 ? 'Done.\n' : 'Command stopped.\n');
-      exitCodeStore.set(program, result.exitCode);
-    });
+    projectCommand
+      .option('--agent <agent>', 'Select an agent artifact to manage; repeat for multiple agents.', collectAgentSelection, [])
+      .option('--recommended-agents', 'Select all detected agent artifacts.')
+      .option('--no-agent-artifacts', 'Do not generate or update agent artifacts.');
+
+    projectCommand.action(
+      async (options: { agent?: LotusAgent[]; force?: boolean; recommendedAgents?: boolean; agentArtifacts?: boolean } = {}) => {
+        context.stdout(`LotusAgents ${command}\n`);
+        const result = await runProjectCommand(command, {
+          ...context,
+          forceReinstall: context.forceReinstall === true || options.force === true,
+          selectedAgents: options.agent !== undefined && options.agent.length > 0 ? options.agent : context.selectedAgents,
+          selectRecommendedAgents: context.selectRecommendedAgents === true || options.recommendedAgents === true,
+          noAgentArtifacts: context.noAgentArtifacts === true || options.agentArtifacts === false,
+        });
+        context.stdout(result.exitCode === 0 ? 'Done.\n' : 'Command stopped.\n');
+        exitCodeStore.set(program, result.exitCode);
+      },
+    );
   }
 
   return program;
@@ -50,6 +61,9 @@ export async function runCli(argv = process.argv, options: Partial<CommandContex
     updateAction: options.updateAction,
     removeScope: options.removeScope,
     forceReinstall: options.forceReinstall,
+    selectedAgents: options.selectedAgents,
+    selectRecommendedAgents: options.selectRecommendedAgents,
+    noAgentArtifacts: options.noAgentArtifacts,
   };
 
   const program = buildProgram(context);
@@ -65,6 +79,10 @@ export async function runCli(argv = process.argv, options: Partial<CommandContex
   }
 
   return { exitCode: exitCodeStore.get(program) ?? 0 };
+}
+
+function collectAgentSelection(value: string, previous: LotusAgent[]): LotusAgent[] {
+  return [...previous, lotusAgentSchema.parse(value)];
 }
 
 function isCommanderExit(error: unknown): error is { code: string; exitCode: number } {

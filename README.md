@@ -79,6 +79,18 @@ machine-readable metadata for scope, artifact type, schema version, content
 version, privacy, selected profiles, selected agents, selected procedures,
 content class, and migration strategy.
 
+Agent entrypoint generation supports Codex, OpenCode, Claude, and Cursor:
+
+- `--recommended-agents` selects all detected agents
+- `--agent <agent>` selects explicit agents and can be repeated
+- `--no-agent-artifacts` skips agent entrypoint files
+- Codex and OpenCode share `AGENTS.md`
+- Claude uses `CLAUDE.md`
+- Cursor uses `.cursor/rules/lotus.mdc`
+
+Generated files point back to `.local/AGENTS.md` and `.docs/AGENTS.md`.
+Existing non-Lotus files are reported and left untouched.
+
 ## Local Development
 
 Use Bun for this repository's local dependency and verification workflow:

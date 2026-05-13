@@ -1,3 +1,16 @@
+export type { AgentArtifactDefinition, AgentArtifactSelection, AgentConfiguration, AgentDetection } from './agents';
+export {
+  AgentArtifactKind,
+  AgentSelectionMode,
+  agentArtifactDefinitions,
+  agentArtifactKindSchema,
+  agentSelectionModeSchema,
+  createAgentAdapter,
+  detectAgents,
+  formatAgents,
+  formatDetectedAgents,
+  supportedAgents,
+} from './agents';
 export { DocsMode, docsModeSchema, ProjectCommand, projectCommandSchema } from './commands';
 export type { LotusManifest, ManagedArtifact } from './manifest';
 export {
