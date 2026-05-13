@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { runProjectCommand } from './commands.js';
-import { packageInfo } from './packageInfo.js';
-import type { CliResult, CommandContext } from './types.js';
+import { runProjectCommand } from './commands';
+import { packageInfo } from './packageInfo';
+import type { CliResult, CommandContext } from './types';
 
 const exitCodeStore = new WeakMap<Command, number>();
 
