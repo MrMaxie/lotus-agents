@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import matter from 'gray-matter';
+import { lotusAgentSchema, lotusArtifactContentVersion } from '../manifest';
 import {
   type AgentArtifactMetadata,
   type AgentArtifactSelection,
@@ -7,8 +8,7 @@ import {
   AgentMetadataReadStatus,
   createAgentArtifactMetadataSchema,
   sharedSemantics,
-} from './agentArtifactTypes';
-import { lotusAgentSchema, lotusArtifactContentVersion } from './manifest';
+} from './artifactTypes';
 
 const agentArtifactMetadataSchema = createAgentArtifactMetadataSchema(lotusAgentSchema);
 

@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { agentAdapters } from './agentAdapters';
-import { pathExists } from './utils/pathExists';
+import { pathExists } from '../utils/pathExists';
+import { agentAdapters } from './adapters';
 
 export const detectAgents = async (root: string) =>
   Promise.all(

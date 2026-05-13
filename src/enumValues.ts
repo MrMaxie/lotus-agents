@@ -1,6 +1,6 @@
-export function enumValues<const TEnum extends Record<string, string>>(
+export const enumValues = <const TEnum extends Record<string, string>>(
   enumObject: TEnum,
-): [TEnum[keyof TEnum], ...Array<TEnum[keyof TEnum]>] {
+): [TEnum[keyof TEnum], ...Array<TEnum[keyof TEnum]>] => {
   const values = Object.values(enumObject) as Array<TEnum[keyof TEnum]>;
 
   if (values.length === 0) {
@@ -8,4 +8,4 @@ export function enumValues<const TEnum extends Record<string, string>>(
   }
 
   return values as [TEnum[keyof TEnum], ...Array<TEnum[keyof TEnum]>];
-}
+};

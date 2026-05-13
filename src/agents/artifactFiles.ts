@@ -1,10 +1,10 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { readAgentArtifactMetadata, renderAgentArtifact } from './agentArtifactContent';
-import { agentArtifactDefinitions } from './agentArtifactDefinitions';
-import { type AgentArtifactSelection, AgentMetadataReadStatus } from './agentArtifactTypes';
-import { formatAgents } from './agentFormatting';
-import type { LotusAgent } from './manifest';
+import type { LotusAgent } from '../manifest';
+import { readAgentArtifactMetadata, renderAgentArtifact } from './artifactContent';
+import { agentArtifactDefinitions } from './artifactDefinitions';
+import { type AgentArtifactSelection, AgentMetadataReadStatus } from './artifactTypes';
+import { formatAgents } from './formatting';
 
 export const writeSelectedAgentArtifacts = async (root: string, selectedArtifacts: AgentArtifactSelection[]) => {
   const appliedChanges: string[] = [];

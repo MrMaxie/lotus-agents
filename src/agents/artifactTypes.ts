@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { type AgentArtifactKind, agentArtifactKindSchema } from './agentAdapters';
-import type { LotusAgent } from './manifest';
+import type { LotusAgent } from '../manifest';
+import { type AgentArtifactKind, agentArtifactKindSchema } from './adapters';
 
 export enum AgentMetadataReadStatus {
   Missing = 'missing',

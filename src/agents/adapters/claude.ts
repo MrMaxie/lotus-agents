@@ -1,4 +1,4 @@
-import { LotusAgent } from '../manifest';
+import { LotusAgent } from '../../manifest';
 import { AgentArtifactKind, createAgentAdapter } from './createAgentAdapter';
 
 export const claudeAgentAdapter = createAgentAdapter({

@@ -99,7 +99,7 @@ const looseArtifactMetadataSchema = z.object({
 
 type LooseArtifactMetadata = z.infer<typeof looseArtifactMetadataSchema>;
 
-export async function detectLotusState(repository: RepositoryState): Promise<LotusState> {
+export const detectLotusState = async (repository: RepositoryState): Promise<LotusState> => {
   const root = repository.root;
 
   if (root === null) {
@@ -124,9 +124,9 @@ export async function detectLotusState(repository: RepositoryState): Promise<Lot
     managedPaths,
     missingManagedPaths,
   });
-}
+};
 
-async function validateManagedArtifact(root: string, artifact: ManagedArtifact): Promise<LotusArtifactState> {
+const validateManagedArtifact = async (root: string, artifact: ManagedArtifact): Promise<LotusArtifactState> => {
   const absolutePath = join(root, artifact.path);
 
   try {
@@ -214,9 +214,9 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
       ],
     };
   }
-}
+};
 
-async function readArtifactMetadata(absolutePath: string, artifact: ManagedArtifact): Promise<MetadataReadResult> {
+const readArtifactMetadata = async (absolutePath: string, artifact: ManagedArtifact): Promise<MetadataReadResult> => {
   if (artifact.migration.strategy === 'frontmatter') {
     return readFileMetadata(absolutePath);
   }
@@ -226,9 +226,9 @@ async function readArtifactMetadata(absolutePath: string, artifact: ManagedArtif
   }
 
   return { status: MetadataReadStatus.NotRequired };
-}
+};
 
-async function readFileMetadata(absolutePath: string): Promise<MetadataReadResult> {
+const readFileMetadata = async (absolutePath: string): Promise<MetadataReadResult> => {
   const content = await readFile(absolutePath, 'utf8');
   const frontmatter = extractFrontmatter(content);
 
@@ -247,9 +247,9 @@ async function readFileMetadata(absolutePath: string): Promise<MetadataReadResul
       message: `Invalid Lotus metadata frontmatter: ${formatParserError(error)}.`,
     };
   }
-}
+};
 
-async function readDirectoryMetadata(absolutePath: string): Promise<MetadataReadResult> {
+const readDirectoryMetadata = async (absolutePath: string): Promise<MetadataReadResult> => {
   const manifestPath = join(absolutePath, directoryManifestFileName);
 
   try {
@@ -270,9 +270,9 @@ async function readDirectoryMetadata(absolutePath: string): Promise<MetadataRead
       message: `Invalid Lotus directory manifest ${directoryManifestFileName}: ${formatParserError(error)}.`,
     };
   }
-}
+};
 
-function validateArtifactMetadata(artifact: ManagedArtifact, rawMetadata: unknown): LotusArtifactState {
+const validateArtifactMetadata = (artifact: ManagedArtifact, rawMetadata: unknown): LotusArtifactState => {
   const parsed = looseArtifactMetadataSchema.safeParse(rawMetadata);
 
   if (!parsed.success) {
@@ -325,9 +325,9 @@ function validateArtifactMetadata(artifact: ManagedArtifact, rawMetadata: unknow
     status: LotusStateStatus.Valid,
     diagnostics: [],
   };
-}
+};
 
-async function validateExternalConfiguration(root: string): Promise<LotusStateDiagnostic[]> {
+const validateExternalConfiguration = async (root: string): Promise<LotusStateDiagnostic[]> => {
   const codexConfigPath = join(root, '.codex', 'config.toml');
 
   try {
@@ -348,16 +348,16 @@ async function validateExternalConfiguration(root: string): Promise<LotusStateDi
       },
     ];
   }
-}
+};
 
-function summarizeState(input: {
+const summarizeState = (input: {
   artifactStates: LotusArtifactState[];
   diagnostics: LotusStateDiagnostic[];
   externalDiagnostics: LotusStateDiagnostic[];
   invalidManagedPaths: ArtifactKindMismatch[];
   managedPaths: string[];
   missingManagedPaths: string[];
-}): LotusState {
+}): LotusState => {
   const { artifactStates, diagnostics, externalDiagnostics, invalidManagedPaths, managedPaths, missingManagedPaths } = input;
 
   if (externalDiagnostics.length > 0) {
@@ -425,9 +425,9 @@ function summarizeState(input: {
     diagnostics,
     artifacts: artifactStates,
   };
-}
+};
 
-function createState(
+const createState = (
   status: LotusStateStatus,
   reasonCode: LotusValidationReasonCode,
   message: string,
@@ -438,7 +438,7 @@ function createState(
     managedPaths: string[];
     missingManagedPaths: string[];
   },
-): LotusState {
+): LotusState => {
   return {
     status,
     reasonCode,
@@ -450,9 +450,9 @@ function createState(
     diagnostics: input.diagnostics,
     artifacts: input.artifactStates,
   };
-}
+};
 
-function createMissingState(diagnostics: LotusStateDiagnostic[]): LotusState {
+const createMissingState = (diagnostics: LotusStateDiagnostic[]): LotusState => {
   return {
     status: LotusStateStatus.Missing,
     reasonCode: LotusValidationReasonCode.ManagedArtifactsMissing,
@@ -468,9 +468,9 @@ function createMissingState(diagnostics: LotusStateDiagnostic[]): LotusState {
       diagnostics: [],
     })),
   };
-}
+};
 
-function getArtifactMetadataMismatch(artifact: ManagedArtifact, metadata: LooseArtifactMetadata): string | null {
+const getArtifactMetadataMismatch = (artifact: ManagedArtifact, metadata: LooseArtifactMetadata): string | null => {
   if (metadata.scope !== artifact.scope) {
     return `Lotus metadata scope mismatch for ${artifact.path}: expected ${artifact.scope}, found ${metadata.scope}.`;
   }
@@ -488,28 +488,24 @@ function getArtifactMetadataMismatch(artifact: ManagedArtifact, metadata: LooseA
   }
 
   return null;
-}
+};
 
-function extractFrontmatter(content: string): string | null {
+const extractFrontmatter = (content: string): string | null => {
   const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content);
   return match?.[1] ?? null;
-}
+};
 
-function unwrapDirectoryMetadata(parsed: unknown): unknown {
+const unwrapDirectoryMetadata = (parsed: unknown): unknown => {
   if (parsed !== null && typeof parsed === 'object' && 'metadata' in parsed) {
     return (parsed as { metadata: unknown }).metadata;
   }
 
   return parsed;
-}
+};
 
-function isMissingPathError(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error.code === 'ENOENT';
-}
+const isMissingPathError = (error: unknown): boolean => error instanceof Error && 'code' in error && error.code === 'ENOENT';
 
-function formatParserError(error: unknown): string {
-  return error instanceof Error ? error.message : 'unknown parser error';
-}
+const formatParserError = (error: unknown): string => (error instanceof Error ? error.message : 'unknown parser error');
 
 type MetadataReadResult =
   | { status: MetadataReadStatus.Missing }

@@ -1,5 +1,5 @@
-import type { AgentDetection } from './agentArtifactTypes';
-import type { LotusAgent } from './manifest';
+import type { LotusAgent } from '../manifest';
+import type { AgentDetection } from './artifactTypes';
 
 export const formatDetectedAgents = (detections: AgentDetection[]) => {
   const detected = detections.filter((detection) => detection.detected);

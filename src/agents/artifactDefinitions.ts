@@ -1,6 +1,6 @@
-import { agentAdapters, type LotusAgentAdapter } from './agentAdapters';
-import type { AgentArtifactDefinition, AgentArtifactSelection } from './agentArtifactTypes';
-import type { LotusAgent } from './manifest';
+import type { LotusAgent } from '../manifest';
+import { agentAdapters, type LotusAgentAdapter } from './adapters';
+import type { AgentArtifactDefinition, AgentArtifactSelection } from './artifactTypes';
 
 const createAgentArtifactDefinitions = (adapters: readonly LotusAgentAdapter[]) => {
   const definitions = new Map<string, AgentArtifactDefinition>();
