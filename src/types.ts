@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { enumValues } from './enumValues';
+import type { LotusAgent } from './manifest';
 
 export type OutputWriter = (message: string) => void;
 
@@ -26,6 +27,9 @@ export type CommandContext = {
   updateAction?: WorkflowAction;
   removeScope?: RemoveScope;
   forceReinstall?: boolean;
+  selectedAgents?: LotusAgent[];
+  selectRecommendedAgents?: boolean;
+  noAgentArtifacts?: boolean;
 };
 
 export type CliResult = {
