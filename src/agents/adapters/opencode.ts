@@ -1,12 +1,13 @@
-import { LotusAgent } from '../manifest';
+import { LotusAgent } from '../../manifest';
 import { AgentArtifactKind, createAgentAdapter } from './createAgentAdapter';
 
-export const codexAgentAdapter = createAgentAdapter({
-  agent: LotusAgent.Codex,
+export const opencodeAgentAdapter = createAgentAdapter({
+  agent: LotusAgent.Opencode,
   hooks: {
     detect: () => [
       { path: 'AGENTS.md', reason: 'repository AGENTS.md' },
-      { path: '.codex', reason: 'repository .codex configuration' },
+      { path: 'opencode.json', reason: 'repository opencode.json' },
+      { path: '.opencode', reason: 'repository .opencode configuration' },
     ],
     artifact: () => ({
       path: 'AGENTS.md',

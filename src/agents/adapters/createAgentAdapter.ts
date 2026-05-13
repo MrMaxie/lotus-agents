@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { enumValues } from '../enumValues';
-import type { LotusAgent } from '../manifest';
+import { enumValues } from '../../enumValues';
+import type { LotusAgent } from '../../manifest';
 
 export enum AgentArtifactKind {
   SharedAgents = 'shared-agents',

@@ -6,7 +6,7 @@ import type { CliResult, CommandContext } from './types';
 
 const exitCodeStore = new WeakMap<Command, number>();
 
-export function buildProgram(context: CommandContext): Command {
+export const buildProgram = (context: CommandContext): Command => {
   const program = new Command();
 
   program
@@ -50,9 +50,9 @@ export function buildProgram(context: CommandContext): Command {
   }
 
   return program;
-}
+};
 
-export async function runCli(argv = process.argv, options: Partial<CommandContext> = {}): Promise<CliResult> {
+export const runCli = async (argv = process.argv, options: Partial<CommandContext> = {}): Promise<CliResult> => {
   const context: CommandContext = {
     cwd: options.cwd ?? process.cwd(),
     stdout: options.stdout ?? ((message) => process.stdout.write(message)),
@@ -79,13 +79,13 @@ export async function runCli(argv = process.argv, options: Partial<CommandContex
   }
 
   return { exitCode: exitCodeStore.get(program) ?? 0 };
-}
+};
 
-function collectAgentSelection(value: string, previous: LotusAgent[]): LotusAgent[] {
+const collectAgentSelection = (value: string, previous: LotusAgent[]): LotusAgent[] => {
   return [...previous, lotusAgentSchema.parse(value)];
-}
+};
 
-function isCommanderExit(error: unknown): error is { code: string; exitCode: number } {
+const isCommanderExit = (error: unknown): error is { code: string; exitCode: number } => {
   return (
     typeof error === 'object' &&
     error !== null &&
@@ -94,4 +94,4 @@ function isCommanderExit(error: unknown): error is { code: string; exitCode: num
     typeof (error as { code: unknown }).code === 'string' &&
     typeof (error as { exitCode: unknown }).exitCode === 'number'
   );
-}
+};

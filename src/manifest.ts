@@ -156,6 +156,50 @@ export const lotusManifestSchema = z
 export type ManagedArtifact = z.infer<typeof managedArtifactSchema>;
 export type LotusManifest = z.infer<typeof lotusManifestSchema>;
 
+type CreateArtifactInput = {
+  path: string;
+  scope: ManagedArtifactScope;
+  kind: ManagedArtifactKind;
+  artifactType: ManagedArtifactType;
+  privacy: ManagedPrivacy;
+  contentClass: ManagedContentClass;
+  selectedProfiles: LotusProfile[];
+  selectedAgents?: LotusAgent[];
+  selectedProcedures: string[];
+  migrationStrategy: MigrationStrategy;
+  includePackageTemplate: boolean;
+  publicDocsAllowed: boolean;
+};
+
+const createArtifact = (input: CreateArtifactInput): ManagedArtifact => ({
+  path: input.path,
+  scope: input.scope,
+  kind: input.kind,
+  metadata: {
+    lotus: 'managed-artifact',
+    scope: input.scope,
+    artifactType: input.artifactType,
+    schemaVersion: lotusArtifactSchemaVersion,
+    contentVersion: lotusArtifactContentVersion,
+    privacy: input.privacy,
+    contentClass: input.contentClass,
+    selectedProfiles: input.selectedProfiles,
+    selectedAgents: input.selectedAgents ?? [],
+    selectedProcedures: input.selectedProcedures,
+  },
+  migration: {
+    strategy: input.migrationStrategy,
+    currentSchemaVersion: lotusArtifactSchemaVersion,
+  },
+  packageTemplate: {
+    include: input.includePackageTemplate,
+    publicDocsAllowed: input.publicDocsAllowed,
+  },
+});
+
+const isPathInArtifactScope = (path: string, scope: ManagedArtifactScope): boolean =>
+  scope === ManagedArtifactScope.Local ? path.startsWith('.local/') : path.startsWith('.docs/');
+
 const localFirstProcedures = ['task-intake', 'pr-intake', 'meeting-promotion', 'spec-bootstrap'];
 
 const rawLotusManifest = {
@@ -287,53 +331,5 @@ export const lotusManifest = lotusManifestSchema.parse(rawLotusManifest);
 export const managedArtifacts = lotusManifest.artifacts;
 export const managedArtifactPaths = managedArtifacts.map((artifact) => artifact.path);
 
-export function getManagedArtifact(managedPath: string): ManagedArtifact | undefined {
-  return managedArtifacts.find((artifact) => artifact.path === managedPath);
-}
-
-function isPathInArtifactScope(path: string, scope: ManagedArtifactScope): boolean {
-  return scope === ManagedArtifactScope.Local ? path.startsWith('.local/') : path.startsWith('.docs/');
-}
-
-type CreateArtifactInput = {
-  path: string;
-  scope: ManagedArtifactScope;
-  kind: ManagedArtifactKind;
-  artifactType: ManagedArtifactType;
-  privacy: ManagedPrivacy;
-  contentClass: ManagedContentClass;
-  selectedProfiles: LotusProfile[];
-  selectedAgents?: LotusAgent[];
-  selectedProcedures: string[];
-  migrationStrategy: MigrationStrategy;
-  includePackageTemplate: boolean;
-  publicDocsAllowed: boolean;
-};
-
-function createArtifact(input: CreateArtifactInput): ManagedArtifact {
-  return {
-    path: input.path,
-    scope: input.scope,
-    kind: input.kind,
-    metadata: {
-      lotus: 'managed-artifact',
-      scope: input.scope,
-      artifactType: input.artifactType,
-      schemaVersion: lotusArtifactSchemaVersion,
-      contentVersion: lotusArtifactContentVersion,
-      privacy: input.privacy,
-      contentClass: input.contentClass,
-      selectedProfiles: input.selectedProfiles,
-      selectedAgents: input.selectedAgents ?? [],
-      selectedProcedures: input.selectedProcedures,
-    },
-    migration: {
-      strategy: input.migrationStrategy,
-      currentSchemaVersion: lotusArtifactSchemaVersion,
-    },
-    packageTemplate: {
-      include: input.includePackageTemplate,
-      publicDocsAllowed: input.publicDocsAllowed,
-    },
-  };
-}
+export const getManagedArtifact = (managedPath: string): ManagedArtifact | undefined =>
+  managedArtifacts.find((artifact) => artifact.path === managedPath);

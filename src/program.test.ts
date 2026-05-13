@@ -17,7 +17,7 @@ import {
 import { buildProgram, runCli } from './program';
 import { RemoveScope, WorkflowAction } from './types';
 
-function createWriters() {
+const createWriters = () => {
   const stdout: string[] = [];
   const stderr: string[] = [];
 
@@ -29,30 +29,30 @@ function createWriters() {
       stderr: (message: string) => stderr.push(message),
     },
   };
-}
+};
 
-async function createFile(cwd: string, path: string, content = ''): Promise<void> {
+const createFile = async (cwd: string, path: string, content = ''): Promise<void> => {
   const absolutePath = join(cwd, path);
 
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content);
-}
+};
 
-async function createDirectory(cwd: string, path: string): Promise<void> {
+const createDirectory = async (cwd: string, path: string): Promise<void> => {
   await mkdir(join(cwd, path), { recursive: true });
-}
+};
 
-async function copyRepositoryFile(cwd: string, sourcePath: string, targetPath: string): Promise<void> {
+const copyRepositoryFile = async (cwd: string, sourcePath: string, targetPath: string): Promise<void> => {
   const content = await readFile(join(process.cwd(), sourcePath), 'utf8');
 
   await createFile(cwd, targetPath, content);
-}
+};
 
-async function createManagedArtifact(
+const createManagedArtifact = async (
   cwd: string,
   artifact: ManagedArtifact,
   metadataOverrides: Record<string, unknown> = {},
-): Promise<void> {
+): Promise<void> => {
   const metadata = {
     ...artifact.metadata,
     ...metadataOverrides,
@@ -74,21 +74,21 @@ async function createManagedArtifact(
     artifact.path,
     `---\n${JSON.stringify(metadata, null, 2)}\n---\n# Managed ${artifact.path}\n\nUnrelated local content.\n`,
   );
-}
+};
 
-async function createManagedArtifacts(cwd: string, overridesByPath: Record<string, Record<string, unknown>> = {}): Promise<void> {
+const createManagedArtifacts = async (cwd: string, overridesByPath: Record<string, Record<string, unknown>> = {}): Promise<void> => {
   for (const artifact of managedArtifacts) {
     await createManagedArtifact(cwd, artifact, overridesByPath[artifact.path]);
   }
-}
+};
 
-async function expectPathExists(cwd: string, path: string): Promise<void> {
+const expectPathExists = async (cwd: string, path: string): Promise<void> => {
   await expect(access(join(cwd, path))).resolves.toBeUndefined();
-}
+};
 
-async function expectPathMissing(cwd: string, path: string): Promise<void> {
+const expectPathMissing = async (cwd: string, path: string): Promise<void> => {
   await expect(access(join(cwd, path))).rejects.toThrow();
-}
+};
 
 describe('LotusAgents CLI', () => {
   it('exposes the expected command names', () => {

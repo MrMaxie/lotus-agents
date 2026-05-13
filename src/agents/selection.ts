@@ -1,9 +1,9 @@
 import { cancel, isCancel, multiselect, select } from '@clack/prompts';
 import { z } from 'zod';
-import type { AgentDetection } from './agentArtifactTypes';
-import { enumValues } from './enumValues';
-import { type LotusAgent, lotusAgentSchema } from './manifest';
-import type { CommandContext } from './types';
+import { enumValues } from '../enumValues';
+import { type LotusAgent, lotusAgentSchema } from '../manifest';
+import type { CommandContext } from '../types';
+import type { AgentDetection } from './artifactTypes';
 
 export enum AgentSelectionMode {
   Custom = 'custom',

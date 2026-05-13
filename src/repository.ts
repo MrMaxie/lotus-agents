@@ -1,7 +1,7 @@
 import { execa } from 'execa';
 import type { RepositoryState } from './types';
 
-export async function detectRepository(cwd: string): Promise<RepositoryState> {
+export const detectRepository = async (cwd: string): Promise<RepositoryState> => {
   try {
     const result = await execa('git', ['rev-parse', '--show-toplevel'], {
       cwd,
@@ -20,4 +20,4 @@ export async function detectRepository(cwd: string): Promise<RepositoryState> {
       isRepository: false,
     };
   }
-}
+};
