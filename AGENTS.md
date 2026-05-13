@@ -57,9 +57,9 @@ When changing the contract or adoption story:
 - Keep line width at 140 columns, not 80.
 - Always use semicolons.
 - Use Bun for local dependency installation, lockfile updates, and package
-  verification commands when working inside this repository. Keep
-  `package-lock.json` as compatibility-only NPM metadata for release and
-  publishing validation.
+  verification commands when working inside this repository. Keep `bun.lock` as
+  the only repository lockfile unless a human explicitly asks for npm lockfile
+  compatibility.
 - Run Biome through the package scripts when editing JavaScript, TypeScript,
   JSON, or JSONC files.
 

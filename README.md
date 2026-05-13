@@ -91,15 +91,15 @@ bun run test
 bun run build
 ```
 
-`bun.lock` is the source lockfile for local development. `package-lock.json` is
-retained as compatibility-only NPM metadata so package publishing and NPM-based
-consumer validation can still exercise the registry target without changing the
-public CLI contract.
+`bun.lock` is the repository lockfile. `package-lock.json` is intentionally not
+kept because npm does not require it for packing or publishing the package, and
+keeping two lockfiles would create dependency drift without a clear owner.
 
 The package scripts are runner-neutral where possible, so the same checks can
 run through Bun locally while NPM lifecycle behavior remains available for
-release validation. `prepack` intentionally stays NPM-based because the package
-is published to NPM and should keep validating that path.
+release validation through commands such as `npm pack` or `npm publish --dry-run`.
+`prepack` intentionally stays NPM-based because the package is published to NPM
+and should keep validating that path.
 
 ## Update All Skills
 
@@ -361,9 +361,7 @@ The most important pieces are:
 - `package.json`:
   the publishable `@maxiedev/lotusagents` CLI package metadata
 - `bun.lock`:
-  the Bun-first local development lockfile
-- `package-lock.json`:
-  compatibility-only NPM metadata for package publishing validation
+  the Bun-first repository lockfile
 - `lotus-local/`:
   the local-first skill package and its assets
 - `lotus-linear/`:
