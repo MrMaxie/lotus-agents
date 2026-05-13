@@ -1,7 +1,22 @@
+import { z } from 'zod';
+import { enumValues } from './enumValues';
+
 export type OutputWriter = (message: string) => void;
 
-export type WorkflowAction = 'update' | 'remove' | 'cancel';
-export type RemoveScope = 'all' | 'local' | 'docs';
+export enum WorkflowAction {
+  Update = 'update',
+  Remove = 'remove',
+  Cancel = 'cancel',
+}
+
+export enum RemoveScope {
+  All = 'all',
+  Local = 'local',
+  Docs = 'docs',
+}
+
+export const workflowActionSchema = z.enum(enumValues(WorkflowAction));
+export const removeScopeSchema = z.enum(enumValues(RemoveScope));
 
 export type CommandContext = {
   cwd: string;
