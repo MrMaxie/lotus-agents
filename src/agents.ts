@@ -1,11 +1,14 @@
 import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { cancel, isCancel, multiselect, select } from '@clack/prompts';
-import { parse as parseYaml } from 'yaml';
+import matter from 'gray-matter';
 import { z } from 'zod';
+import { type AgentArtifactKind, agentAdapters, agentArtifactKindSchema, type LotusAgentAdapter } from './agentAdapters';
 import { enumValues } from './enumValues';
-import { LotusAgent, lotusAgentSchema, lotusArtifactContentVersion } from './manifest';
+import { type LotusAgent, lotusAgentSchema, lotusArtifactContentVersion } from './manifest';
 import type { CommandContext } from './types';
+
+export { AgentArtifactKind, agentArtifactKindSchema, createAgentAdapter } from './agentAdapters';
 
 export enum AgentSelectionMode {
   Custom = 'custom',
@@ -13,14 +16,7 @@ export enum AgentSelectionMode {
   None = 'none',
 }
 
-export enum AgentArtifactKind {
-  SharedAgents = 'shared-agents',
-  ClaudeMemory = 'claude-memory',
-  CursorRule = 'cursor-rule',
-}
-
 export const agentSelectionModeSchema = z.enum(enumValues(AgentSelectionMode));
-export const agentArtifactKindSchema = z.enum(enumValues(AgentArtifactKind));
 
 export type AgentDetection = {
   agent: LotusAgent;
@@ -31,7 +27,9 @@ export type AgentDetection = {
 export type AgentArtifactDefinition = {
   path: string;
   kind: AgentArtifactKind;
+  title: string;
   agents: LotusAgent[];
+  extraFrontmatter?: Record<string, unknown>;
 };
 
 export type AgentArtifactSelection = AgentArtifactDefinition & {
@@ -53,6 +51,7 @@ type AgentArtifactMetadata = {
   sharedSemantics: string[];
 };
 
+const sharedSemantics = ['.local/AGENTS.md', '.docs/AGENTS.md'];
 const agentArtifactMetadataSchema = z.object({
   lotus: z.literal('managed-agent-artifact'),
   schemaVersion: z.literal(1),
@@ -62,27 +61,33 @@ const agentArtifactMetadataSchema = z.object({
   sharedSemantics: z.array(z.string().min(1)),
 });
 
-export const supportedAgents = [LotusAgent.Codex, LotusAgent.Opencode, LotusAgent.Claude, LotusAgent.Cursor] as const;
+export const supportedAgents = agentAdapters.map((adapter) => adapter.agent);
 
-export const agentArtifactDefinitions: AgentArtifactDefinition[] = [
-  {
-    path: 'AGENTS.md',
-    kind: AgentArtifactKind.SharedAgents,
-    agents: [LotusAgent.Codex, LotusAgent.Opencode],
-  },
-  {
-    path: 'CLAUDE.md',
-    kind: AgentArtifactKind.ClaudeMemory,
-    agents: [LotusAgent.Claude],
-  },
-  {
-    path: '.cursor/rules/lotus.mdc',
-    kind: AgentArtifactKind.CursorRule,
-    agents: [LotusAgent.Cursor],
-  },
-];
+const createAgentArtifactDefinitions = (adapters: readonly LotusAgentAdapter[]) => {
+  const definitions = new Map<string, AgentArtifactDefinition>();
 
-export async function createAgentConfiguration(root: string, context: CommandContext): Promise<AgentConfiguration> {
+  for (const adapter of adapters) {
+    const artifact = adapter.hooks.artifact({ agent: adapter.agent });
+    const key = `${artifact.kind}:${artifact.path}`;
+    const existingDefinition = definitions.get(key);
+
+    if (existingDefinition !== undefined) {
+      existingDefinition.agents.push(adapter.agent);
+      continue;
+    }
+
+    definitions.set(key, {
+      ...artifact,
+      agents: [adapter.agent],
+    });
+  }
+
+  return [...definitions.values()];
+};
+
+export const agentArtifactDefinitions = createAgentArtifactDefinitions(agentAdapters);
+
+export const createAgentConfiguration = async (root: string, context: CommandContext) => {
   const detections = await detectAgents(root);
   const selectedAgents = await resolveSelectedAgents(detections, context);
 
@@ -91,52 +96,28 @@ export async function createAgentConfiguration(root: string, context: CommandCon
     selectedAgents,
     selectedArtifacts: selectAgentArtifacts(selectedAgents),
   };
-}
+};
 
-export async function detectAgents(root: string): Promise<AgentDetection[]> {
-  const detectionInputs = await Promise.all([
-    createDetection(LotusAgent.Codex, [
-      ['AGENTS.md', 'repository AGENTS.md'],
-      ['.codex', 'repository .codex configuration'],
-    ]),
-    createDetection(LotusAgent.Opencode, [
-      ['AGENTS.md', 'repository AGENTS.md'],
-      ['opencode.json', 'repository opencode.json'],
-      ['.opencode', 'repository .opencode configuration'],
-    ]),
-    createDetection(LotusAgent.Claude, [
-      ['CLAUDE.md', 'repository CLAUDE.md'],
-      ['.claude', 'repository .claude configuration'],
-    ]),
-    createDetection(LotusAgent.Cursor, [
-      ['.cursor', 'repository .cursor configuration'],
-      ['.cursorrules', 'legacy repository .cursorrules'],
-    ]),
-  ]);
-
-  return detectionInputs.map(({ agent, checks }) => ({
-    agent,
-    reasons: checks.filter((check) => check.exists).map((check) => check.reason),
-    detected: checks.some((check) => check.exists),
-  }));
-
-  async function createDetection(
-    agent: LotusAgent,
-    checks: [path: string, reason: string][],
-  ): Promise<{ agent: LotusAgent; checks: { reason: string; exists: boolean }[] }> {
-    return {
-      agent,
-      checks: await Promise.all(
-        checks.map(async ([path, reason]) => ({
-          reason,
-          exists: await pathExists(join(root, path)),
+export const detectAgents = async (root: string) =>
+  Promise.all(
+    agentAdapters.map(async (adapter) => {
+      const detectionChecks = adapter.hooks.detect({ agent: adapter.agent });
+      const checks = await Promise.all(
+        detectionChecks.map(async (check) => ({
+          reason: check.reason,
+          exists: await pathExists(join(root, check.path)),
         })),
-      ),
-    };
-  }
-}
+      );
 
-export async function writeSelectedAgentArtifacts(root: string, selectedArtifacts: AgentArtifactSelection[]): Promise<string[]> {
+      return {
+        agent: adapter.agent,
+        reasons: checks.filter((check) => check.exists).map((check) => check.reason),
+        detected: checks.some((check) => check.exists),
+      };
+    }),
+  );
+
+export const writeSelectedAgentArtifacts = async (root: string, selectedArtifacts: AgentArtifactSelection[]) => {
   const appliedChanges: string[] = [];
 
   for (const artifact of selectedArtifacts) {
@@ -154,9 +135,9 @@ export async function writeSelectedAgentArtifacts(root: string, selectedArtifact
   }
 
   return appliedChanges;
-}
+};
 
-export async function removeAgentArtifacts(root: string, selectedAgents: LotusAgent[] | undefined): Promise<string[]> {
+export const removeAgentArtifacts = async (root: string, selectedAgents: LotusAgent[] | undefined) => {
   const appliedChanges: string[] = [];
 
   for (const definition of agentArtifactDefinitions) {
@@ -176,34 +157,29 @@ export async function removeAgentArtifacts(root: string, selectedAgents: LotusAg
       continue;
     }
 
-    const selectedArtifact = {
-      ...definition,
-      selectedAgents: remainingAgents,
-    };
-
-    await writeFile(targetPath, renderAgentArtifact(selectedArtifact));
+    await writeFile(
+      targetPath,
+      renderAgentArtifact({
+        ...definition,
+        selectedAgents: remainingAgents,
+      }),
+    );
     appliedChanges.push(`Updated ${definition.path}; retained ${formatAgents(remainingAgents)}.`);
   }
 
   return appliedChanges;
-}
+};
 
-export function formatDetectedAgents(detections: AgentDetection[]): string {
+export const formatDetectedAgents = (detections: AgentDetection[]) => {
   const detected = detections.filter((detection) => detection.detected);
 
-  if (detected.length === 0) {
-    return 'none';
-  }
+  return detected.length > 0 ? detected.map((detection) => `${detection.agent} (${detection.reasons.join(', ')})`).join(', ') : 'none';
+};
 
-  return detected.map((detection) => `${detection.agent} (${detection.reasons.join(', ')})`).join(', ');
-}
+export const formatAgents = (agents: LotusAgent[]) => (agents.length > 0 ? agents.join(', ') : 'none');
 
-export function formatAgents(agents: LotusAgent[]): string {
-  return agents.length > 0 ? agents.join(', ') : 'none';
-}
-
-function selectAgentArtifacts(selectedAgents: LotusAgent[]): AgentArtifactSelection[] {
-  return agentArtifactDefinitions.flatMap((definition) => {
+const selectAgentArtifacts = (selectedAgents: LotusAgent[]) =>
+  agentArtifactDefinitions.flatMap((definition) => {
     const artifactAgents = definition.agents.filter((agent) => selectedAgents.includes(agent));
 
     return artifactAgents.length > 0
@@ -215,9 +191,8 @@ function selectAgentArtifacts(selectedAgents: LotusAgent[]): AgentArtifactSelect
         ]
       : [];
   });
-}
 
-async function resolveSelectedAgents(detections: AgentDetection[], context: CommandContext): Promise<LotusAgent[]> {
+const resolveSelectedAgents = async (detections: AgentDetection[], context: CommandContext) => {
   if (context.noAgentArtifacts === true) {
     return [];
   }
@@ -272,32 +247,24 @@ async function resolveSelectedAgents(detections: AgentDetection[], context: Comm
   }
 
   return z.array(lotusAgentSchema).parse(agents);
-}
+};
 
-function renderAgentArtifact(artifact: AgentArtifactSelection): string {
-  const metadata: AgentArtifactMetadata = {
+const renderAgentArtifact = (artifact: AgentArtifactSelection) => {
+  const metadata = {
     lotus: 'managed-agent-artifact',
     schemaVersion: 1,
     contentVersion: lotusArtifactContentVersion,
     artifactKind: artifact.kind,
+    ...artifact.extraFrontmatter,
     selectedAgents: artifact.selectedAgents,
-    sharedSemantics: ['.local/AGENTS.md', '.docs/AGENTS.md'],
-  };
+    sharedSemantics,
+  } satisfies AgentArtifactMetadata & Record<string, unknown>;
 
-  const frontmatter = renderYamlMetadata(
-    metadata,
-    artifact.kind === AgentArtifactKind.CursorRule ? ['description: Lotus shared workflow semantics', 'alwaysApply: true'] : [],
-  );
+  return matter.stringify(`# ${artifact.title}\n\n${renderSharedSemanticsBody()}\n`, metadata);
+};
 
-  if (artifact.kind === AgentArtifactKind.CursorRule) {
-    return `${frontmatter}\n# Lotus Shared Workflow\n\n${renderSharedSemanticsBody()}\n`;
-  }
-
-  return `${frontmatter}\n# Lotus Agent Entry Point\n\n${renderSharedSemanticsBody()}\n`;
-}
-
-function renderSharedSemanticsBody(): string {
-  return [
+const renderSharedSemanticsBody = () =>
+  [
     'Use shared Lotus semantics instead of duplicating project workflow rules in this file.',
     '',
     'Read order:',
@@ -308,23 +275,6 @@ function renderSharedSemanticsBody(): string {
     '',
     'Keep agent-specific behavior limited to this entrypoint. The durable Lotus rules live in the shared files above.',
   ].join('\n');
-}
-
-function renderYamlMetadata(metadata: AgentArtifactMetadata, extraLines: string[]): string {
-  return [
-    '---',
-    'lotus: managed-agent-artifact',
-    'schemaVersion: 1',
-    `contentVersion: "${metadata.contentVersion}"`,
-    `artifactKind: ${metadata.artifactKind}`,
-    ...extraLines,
-    'selectedAgents:',
-    ...metadata.selectedAgents.map((agent) => `  - ${agent}`),
-    'sharedSemantics:',
-    ...metadata.sharedSemantics.map((path) => `  - ${path}`),
-    '---',
-  ].join('\n');
-}
 
 enum AgentMetadataReadStatus {
   Missing = 'missing',
@@ -337,19 +287,16 @@ type AgentMetadataReadResult =
   | { status: AgentMetadataReadStatus.Managed; metadata: AgentArtifactMetadata }
   | { status: AgentMetadataReadStatus.Unmanaged };
 
-async function readAgentArtifactMetadata(path: string): Promise<AgentMetadataReadResult> {
+const readAgentArtifactMetadata = async (path: string): Promise<AgentMetadataReadResult> => {
   try {
-    const content = await readFile(path, 'utf8');
-    const frontmatter = extractFrontmatter(content);
+    const parsed = matter(await readFile(path, 'utf8'));
+    const metadata = agentArtifactMetadataSchema.safeParse(parsed.data);
 
-    if (frontmatter === null) {
-      return { status: AgentMetadataReadStatus.Unmanaged };
-    }
-
-    const parsed = agentArtifactMetadataSchema.safeParse(parseYaml(frontmatter));
-
-    return parsed.success
-      ? { status: AgentMetadataReadStatus.Managed, metadata: parsed.data }
+    return metadata.success
+      ? {
+          status: AgentMetadataReadStatus.Managed,
+          metadata: metadata.data,
+        }
       : { status: AgentMetadataReadStatus.Unmanaged };
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
@@ -358,19 +305,13 @@ async function readAgentArtifactMetadata(path: string): Promise<AgentMetadataRea
 
     throw error;
   }
-}
+};
 
-function extractFrontmatter(content: string): string | null {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content);
-
-  return match?.[1] ?? null;
-}
-
-async function pathExists(path: string): Promise<boolean> {
+const pathExists = async (path: string) => {
   try {
     await access(path);
     return true;
   } catch {
     return false;
   }
-}
+};

@@ -5,6 +5,7 @@ export {
   agentArtifactDefinitions,
   agentArtifactKindSchema,
   agentSelectionModeSchema,
+  createAgentAdapter,
   detectAgents,
   formatAgents,
   formatDetectedAgents,
