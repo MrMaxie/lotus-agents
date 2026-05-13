@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Executable CLI package for Lotus Agents repository workflow installation and maintenance.",
   "type": "module",
+  "packageManager": "bun@1.3.8",
   "bin": {
     "lotusagents": "./dist/cli.js",
     "lotus-agents": "./dist/cli.js"
