@@ -13,12 +13,12 @@ const diagnosticMessages: Record<ProjectCommand.Doctor | ProjectCommand.Validate
   [ProjectCommand.Validate]: 'Validate known Lotus-managed project artifacts against the manifest.',
 };
 
-export async function createWorkflowPlan(
+export const createWorkflowPlan = async (
   command: ProjectCommand,
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
-): Promise<WorkflowPlan> {
+): Promise<WorkflowPlan> => {
   return match(command)
     .with(ProjectCommand.Install, () => {
       if (state.hasManagedState) {
@@ -44,13 +44,13 @@ export async function createWorkflowPlan(
     .with(ProjectCommand.Doctor, () => createDiagnosticPlan(ProjectCommand.Doctor, repository, state))
     .with(ProjectCommand.Validate, () => createDiagnosticPlan(ProjectCommand.Validate, repository, state))
     .exhaustive();
-}
+};
 
-function createDiagnosticPlan(
+const createDiagnosticPlan = (
   command: ProjectCommand.Doctor | ProjectCommand.Validate,
   repository: RepositoryState,
   state: LotusState,
-): WorkflowPlan {
+): WorkflowPlan => {
   return {
     command,
     mode: WorkflowMode.Diagnose,
@@ -64,15 +64,15 @@ function createDiagnosticPlan(
     state,
     repository,
   };
-}
+};
 
-async function createUpdateActionPlan(
+const createUpdateActionPlan = async (
   command: ProjectCommand,
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
   mode: WorkflowMode.DetectedUpdate | WorkflowMode.ExplicitUpdate,
-): Promise<WorkflowPlan> {
+): Promise<WorkflowPlan> => {
   const action = await resolveUpdateAction(context);
 
   const actionPlan = await match(action)
@@ -121,9 +121,9 @@ async function createUpdateActionPlan(
     repository,
     configuration,
   };
-}
+};
 
-function createRepairGuidancePlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
+const createRepairGuidancePlan = (command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan => {
   const affectedPaths = state.diagnostics.map((diagnostic) => diagnostic.path);
   const uniqueAffectedPaths = [...new Set(affectedPaths)];
 
@@ -143,9 +143,9 @@ function createRepairGuidancePlan(command: ProjectCommand, repository: Repositor
     state,
     repository,
   };
-}
+};
 
-function createForceReinstallPlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
+const createForceReinstallPlan = (command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan => {
   return {
     command,
     mode: WorkflowMode.ForceReinstall,
@@ -162,9 +162,9 @@ function createForceReinstallPlan(command: ProjectCommand, repository: Repositor
     repository,
     forceReinstallArtifacts: managedArtifacts,
   };
-}
+};
 
-function createExternalCorruptionPlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
+const createExternalCorruptionPlan = (command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan => {
   return {
     command,
     mode: WorkflowMode.Blocked,
@@ -178,15 +178,15 @@ function createExternalCorruptionPlan(command: ProjectCommand, repository: Repos
     state,
     repository,
   };
-}
+};
 
-async function createFreshInstallPlan(
+const createFreshInstallPlan = async (
   command: ProjectCommand,
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
   title = 'Fresh install workflow.',
-): Promise<WorkflowPlan> {
+): Promise<WorkflowPlan> => {
   const configuration = await createInstallationConfiguration(repository, state, context);
 
   return {
@@ -206,14 +206,14 @@ async function createFreshInstallPlan(
     repository,
     configuration,
   };
-}
+};
 
-async function createRemovePlan(
+const createRemovePlan = async (
   command: ProjectCommand,
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
-): Promise<WorkflowPlan> {
+): Promise<WorkflowPlan> => {
   const removeScope = await resolveRemoveScope(context, state);
 
   if (removeScope === WorkflowAction.Cancel) {
@@ -246,9 +246,9 @@ async function createRemovePlan(
     selectedAgentsForRemoval: context.selectedAgents,
     shouldRemoveAgentArtifacts: context.noAgentArtifacts !== true,
   };
-}
+};
 
-function filterManagedPathsByScope(managedPaths: string[], removeScope: RemoveScope): string[] {
+const filterManagedPathsByScope = (managedPaths: string[], removeScope: RemoveScope): string[] => {
   return match(removeScope)
     .with(RemoveScope.All, () => managedPaths)
     .with(RemoveScope.Local, () =>
@@ -258,4 +258,4 @@ function filterManagedPathsByScope(managedPaths: string[], removeScope: RemoveSc
       managedPaths.filter((managedPath) => getManagedArtifact(managedPath)?.scope === ManagedArtifactScope.Docs),
     )
     .exhaustive();
-}
+};

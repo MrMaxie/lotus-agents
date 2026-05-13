@@ -20,7 +20,7 @@ const reinstallAssetsByPath: Record<string, { sourcePath: string; targetFileName
   '.docs/templates': { sourcePath: 'lotus-local/lotus-init/assets/docs-templates.lotus.json', targetFileName: '.lotus.json' },
 };
 
-export async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
+export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> => {
   const appliedChanges: string[] = [];
 
   const task = new Listr(
@@ -88,9 +88,9 @@ export async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
 
   await task.run();
   return appliedChanges;
-}
+};
 
-async function reinstallManagedArtifact(root: string, artifact: ManagedArtifact): Promise<void> {
+const reinstallManagedArtifact = async (root: string, artifact: ManagedArtifact): Promise<void> => {
   const absolutePath = join(root, artifact.path);
   const asset = reinstallAssetsByPath[artifact.path];
 
@@ -123,4 +123,4 @@ async function reinstallManagedArtifact(root: string, artifact: ManagedArtifact)
   await rm(absolutePath, { force: true, recursive: true });
   await mkdir(dirname(absolutePath), { recursive: true });
   await copyFile(join(packageRoot, asset.sourcePath), absolutePath);
-}
+};

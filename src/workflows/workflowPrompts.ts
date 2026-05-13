@@ -2,7 +2,7 @@ import { cancel, isCancel, select } from '@clack/prompts';
 import type { LotusState } from '../state';
 import { type CommandContext, RemoveScope, removeScopeSchema, WorkflowAction, workflowActionSchema } from '../types';
 
-export async function resolveUpdateAction(context: CommandContext): Promise<WorkflowAction> {
+export const resolveUpdateAction = async (context: CommandContext): Promise<WorkflowAction> => {
   if (context.updateAction !== undefined) {
     return workflowActionSchema.parse(context.updateAction);
   }
@@ -28,9 +28,9 @@ export async function resolveUpdateAction(context: CommandContext): Promise<Work
   }
 
   return action;
-}
+};
 
-export async function resolveRemoveScope(context: CommandContext, state: LotusState): Promise<RemoveScope | WorkflowAction.Cancel> {
+export const resolveRemoveScope = async (context: CommandContext, state: LotusState): Promise<RemoveScope | WorkflowAction.Cancel> => {
   if (context.removeScope !== undefined) {
     return removeScopeSchema.parse(context.removeScope);
   }
@@ -56,4 +56,4 @@ export async function resolveRemoveScope(context: CommandContext, state: LotusSt
   }
 
   return scope;
-}
+};

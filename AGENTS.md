@@ -46,6 +46,9 @@ When changing the contract or adoption story:
   requires them.
 - Prefer TypeScript `type` aliases over `interface` declarations unless an
   interface is required.
+- Do not use TypeScript `function` declarations; use arrow function
+  expressions. Use `function` only when a tool, framework, overload, generator,
+  `this` binding, or hoisting requirement makes it necessary.
 - Define reusable enum-like TypeScript value sets as TypeScript string enums
   and validate them through Zod schemas built from `enumValues(...)`, instead
   of duplicating string literal unions or inline `z.enum([...])` arrays.

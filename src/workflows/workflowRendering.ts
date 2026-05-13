@@ -5,7 +5,7 @@ import type { CommandContext } from '../types';
 import { formatRemoveScope } from './workflowFormatting';
 import type { WorkflowPlan } from './workflowTypes';
 
-export function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): void {
+export const renderPlanSummary = (plan: WorkflowPlan, context: CommandContext): void => {
   context.stdout(`${pc.bold(plan.title)}\n`);
   context.stdout(`Repository: ${plan.repository.root}\n`);
   context.stdout(`Manifest schema: v${lotusManifest.schemaVersion}\n`);
@@ -49,12 +49,12 @@ export function renderPlanSummary(plan: WorkflowPlan, context: CommandContext): 
   for (const plannedChange of plan.plannedChanges) {
     context.stdout(`- ${plannedChange}\n`);
   }
-}
+};
 
-export function renderResultSummary(plan: WorkflowPlan, appliedChanges: string[], context: CommandContext): void {
+export const renderResultSummary = (plan: WorkflowPlan, appliedChanges: string[], context: CommandContext): void => {
   context.stdout(`${pc.green('Result:')} ${plan.resultMessage}\n`);
 
   for (const appliedChange of appliedChanges) {
     context.stdout(`- ${appliedChange}\n`);
   }
-}
+};

@@ -10,7 +10,7 @@ import { WorkflowMode } from './workflows/workflowTypes';
 
 export { DocsMode, docsModeSchema, ProjectCommand, projectCommandSchema } from './projectCommands';
 
-export async function runProjectCommand(command: ProjectCommand, context: CommandContext): Promise<CliResult> {
+export const runProjectCommand = async (command: ProjectCommand, context: CommandContext): Promise<CliResult> => {
   const parsedCommand = projectCommandSchema.parse(command);
   const repository = await detectRepository(context.cwd);
 
@@ -39,4 +39,4 @@ export async function runProjectCommand(command: ProjectCommand, context: Comman
   renderResultSummary(plan, appliedChanges, context);
 
   return { exitCode: 0 };
-}
+};

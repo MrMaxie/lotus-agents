@@ -5,11 +5,11 @@ import type { LotusState } from '../state';
 import type { CommandContext, RepositoryState } from '../types';
 import type { InstallationConfiguration } from './workflowTypes';
 
-export async function createInstallationConfiguration(
+export const createInstallationConfiguration = async (
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
-): Promise<InstallationConfiguration> {
+): Promise<InstallationConfiguration> => {
   const detectedDocsArtifacts = state.managedPaths.filter(
     (managedPath) => getManagedArtifact(managedPath)?.scope === ManagedArtifactScope.Docs,
   );
@@ -27,4 +27,4 @@ export async function createInstallationConfiguration(
     detectedDocsArtifacts,
     agents,
   };
-}
+};
