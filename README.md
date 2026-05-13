@@ -79,6 +79,28 @@ machine-readable metadata for scope, artifact type, schema version, content
 version, privacy, selected profiles, selected agents, selected procedures,
 content class, and migration strategy.
 
+## Local Development
+
+Use Bun for this repository's local dependency and verification workflow:
+
+```bash
+bun install
+bun run check
+bun run typecheck
+bun run test
+bun run build
+```
+
+`bun.lock` is the source lockfile for local development. `package-lock.json` is
+retained as compatibility-only NPM metadata so package publishing and NPM-based
+consumer validation can still exercise the registry target without changing the
+public CLI contract.
+
+The package scripts are runner-neutral where possible, so the same checks can
+run through Bun locally while NPM lifecycle behavior remains available for
+release validation. `prepack` intentionally stays NPM-based because the package
+is published to NPM and should keep validating that path.
+
 ## Update All Skills
 
 To refresh every local-first Lotus skill to the newest published version, run:
@@ -338,6 +360,10 @@ The most important pieces are:
   working rules for this repository
 - `package.json`:
   the publishable `@maxiedev/lotusagents` CLI package metadata
+- `bun.lock`:
+  the Bun-first local development lockfile
+- `package-lock.json`:
+  compatibility-only NPM metadata for package publishing validation
 - `lotus-local/`:
   the local-first skill package and its assets
 - `lotus-linear/`:

@@ -56,6 +56,10 @@ When changing the contract or adoption story:
 - Use trailing commas wherever the syntax allows them to reduce future diffs.
 - Keep line width at 140 columns, not 80.
 - Always use semicolons.
+- Use Bun for local dependency installation, lockfile updates, and package
+  verification commands when working inside this repository. Keep
+  `package-lock.json` as compatibility-only NPM metadata for release and
+  publishing validation.
 - Run Biome through the package scripts when editing JavaScript, TypeScript,
   JSON, or JSONC files.
 
