@@ -4,37 +4,49 @@ import { fileURLToPath } from 'node:url';
 import { cancel, isCancel, select } from '@clack/prompts';
 import { Listr } from 'listr2';
 import pc from 'picocolors';
+import { match } from 'ts-pattern';
 import { z } from 'zod';
-import { getManagedArtifact, lotusManifest, type ManagedArtifact, managedArtifacts } from './manifest';
+import { enumValues } from './enumValues';
+import { getManagedArtifact, lotusManifest, type ManagedArtifact, ManagedArtifactScope, managedArtifacts } from './manifest';
 import { detectRepository } from './repository';
-import { detectLotusState, type LotusState } from './state';
+import { detectLotusState, type LotusState, LotusStateStatus } from './state';
 import {
   type CliResult,
   type CommandContext,
-  type RemoveScope,
+  RemoveScope,
   type RepositoryState,
   removeScopeSchema,
-  type WorkflowAction,
+  WorkflowAction,
   workflowActionSchema,
 } from './types';
 
-export const projectCommandSchema = z.enum(['install', 'update', 'remove', 'doctor', 'validate']);
-export const docsModeSchema = z.enum(['committed', 'local-only']);
-const workflowModeSchema = z.enum([
-  'fresh-install',
-  'detected-update',
-  'explicit-update',
-  'repair-guidance',
-  'force-reinstall',
-  'remove',
-  'cancel',
-  'diagnose',
-  'blocked',
-]);
+export enum ProjectCommand {
+  Install = 'install',
+  Update = 'update',
+  Remove = 'remove',
+  Doctor = 'doctor',
+  Validate = 'validate',
+}
 
-export type ProjectCommand = z.infer<typeof projectCommandSchema>;
-type WorkflowMode = z.infer<typeof workflowModeSchema>;
-type DocsMode = z.infer<typeof docsModeSchema>;
+export enum DocsMode {
+  Committed = 'committed',
+  LocalOnly = 'local-only',
+}
+
+enum WorkflowMode {
+  FreshInstall = 'fresh-install',
+  DetectedUpdate = 'detected-update',
+  ExplicitUpdate = 'explicit-update',
+  RepairGuidance = 'repair-guidance',
+  ForceReinstall = 'force-reinstall',
+  Remove = 'remove',
+  Cancel = 'cancel',
+  Diagnose = 'diagnose',
+  Blocked = 'blocked',
+}
+
+export const projectCommandSchema = z.enum(enumValues(ProjectCommand));
+export const docsModeSchema = z.enum(enumValues(DocsMode));
 
 type InstallationConfiguration = {
   docsMode: DocsMode;
@@ -55,9 +67,9 @@ type WorkflowPlan = {
   forceReinstallArtifacts?: ManagedArtifact[];
 };
 
-const diagnosticMessages: Record<'doctor' | 'validate', string> = {
-  doctor: 'Inspect managed Lotus project state and report repair guidance.',
-  validate: 'Validate known Lotus-managed project artifacts against the manifest.',
+const diagnosticMessages: Record<ProjectCommand.Doctor | ProjectCommand.Validate, string> = {
+  [ProjectCommand.Doctor]: 'Inspect managed Lotus project state and report repair guidance.',
+  [ProjectCommand.Validate]: 'Validate known Lotus-managed project artifacts against the manifest.',
 };
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
@@ -94,7 +106,7 @@ export async function runProjectCommand(command: ProjectCommand, context: Comman
 
   renderPlanSummary(plan, context);
 
-  if (plan.mode === 'cancel') {
+  if (plan.mode === WorkflowMode.Cancel) {
     context.stdout(`${pc.yellow('Result:')} ${plan.resultMessage}\n`);
     return { exitCode: 0 };
   }
@@ -111,29 +123,35 @@ async function createWorkflowPlan(
   state: LotusState,
   context: CommandContext,
 ): Promise<WorkflowPlan> {
-  if (command === 'install') {
-    if (state.hasManagedState) {
-      return createUpdateActionPlan(command, repository, state, context, 'detected-update');
-    }
+  return match(command)
+    .with(ProjectCommand.Install, () => {
+      if (state.hasManagedState) {
+        return createUpdateActionPlan(command, repository, state, context, WorkflowMode.DetectedUpdate);
+      }
 
-    return createFreshInstallPlan(command, repository, state);
-  }
+      return createFreshInstallPlan(command, repository, state);
+    })
+    .with(ProjectCommand.Update, () => {
+      if (!state.hasManagedState) {
+        return createFreshInstallPlan(command, repository, state, 'No existing Lotus state detected; running fresh install workflow.');
+      }
 
-  if (command === 'update') {
-    if (!state.hasManagedState) {
-      return createFreshInstallPlan(command, repository, state, 'No existing Lotus state detected; running fresh install workflow.');
-    }
+      return createUpdateActionPlan(command, repository, state, context, WorkflowMode.ExplicitUpdate);
+    })
+    .with(ProjectCommand.Remove, () => createRemovePlan(command, repository, state, context))
+    .with(ProjectCommand.Doctor, () => createDiagnosticPlan(ProjectCommand.Doctor, repository, state))
+    .with(ProjectCommand.Validate, () => createDiagnosticPlan(ProjectCommand.Validate, repository, state))
+    .exhaustive();
+}
 
-    return createUpdateActionPlan(command, repository, state, context, 'explicit-update');
-  }
-
-  if (command === 'remove') {
-    return createRemovePlan(command, repository, state, context);
-  }
-
+function createDiagnosticPlan(
+  command: ProjectCommand.Doctor | ProjectCommand.Validate,
+  repository: RepositoryState,
+  state: LotusState,
+): WorkflowPlan {
   return {
     command,
-    mode: 'diagnose',
+    mode: WorkflowMode.Diagnose,
     title: diagnosticMessages[command],
     plannedChanges: [
       `Validate Lotus-managed artifact manifest schema v${lotusManifest.schemaVersion} with Zod.`,
@@ -151,27 +169,29 @@ async function createUpdateActionPlan(
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
-  mode: Extract<WorkflowMode, 'detected-update' | 'explicit-update'>,
+  mode: WorkflowMode.DetectedUpdate | WorkflowMode.ExplicitUpdate,
 ): Promise<WorkflowPlan> {
   const action = await resolveUpdateAction(context);
 
-  if (action === 'cancel') {
-    return {
+  const actionPlan = await match(action)
+    .with(WorkflowAction.Cancel, () => ({
       command,
-      mode: 'cancel',
+      mode: WorkflowMode.Cancel,
       title: 'Update canceled before applying changes.',
       plannedChanges: ['No files will be changed.'],
       resultMessage: 'No changes applied.',
       state,
       repository,
-    };
+    }))
+    .with(WorkflowAction.Remove, () => createRemovePlan(command, repository, state, context))
+    .with(WorkflowAction.Update, () => null)
+    .exhaustive();
+
+  if (actionPlan !== null) {
+    return actionPlan;
   }
 
-  if (action === 'remove') {
-    return createRemovePlan(command, repository, state, context);
-  }
-
-  if (state.status === 'external-corruption') {
+  if (state.status === LotusStateStatus.ExternalCorruption) {
     return createExternalCorruptionPlan(command, repository, state);
   }
 
@@ -179,7 +199,7 @@ async function createUpdateActionPlan(
     return createForceReinstallPlan(command, repository, state);
   }
 
-  if (state.status === 'damaged-lotus-artifact') {
+  if (state.status === LotusStateStatus.DamagedLotusArtifact) {
     return createRepairGuidancePlan(command, repository, state);
   }
 
@@ -188,7 +208,7 @@ async function createUpdateActionPlan(
   return {
     command,
     mode,
-    title: mode === 'detected-update' ? 'Existing Lotus state detected; running update workflow.' : 'Update workflow.',
+    title: mode === WorkflowMode.DetectedUpdate ? 'Existing Lotus state detected; running update workflow.' : 'Update workflow.',
     plannedChanges: [
       'Inspect existing managed Lotus artifacts.',
       `Prefill installation configuration from detected state: .docs ${configuration.docsMode}.`,
@@ -207,7 +227,7 @@ function createRepairGuidancePlan(command: ProjectCommand, repository: Repositor
 
   return {
     command,
-    mode: 'repair-guidance',
+    mode: WorkflowMode.RepairGuidance,
     title: 'Repair workflow required for damaged Lotus-managed artifacts.',
     plannedChanges: [
       'Stop before overwriting files because Lotus-owned metadata or artifact shape is damaged.',
@@ -226,7 +246,7 @@ function createRepairGuidancePlan(command: ProjectCommand, repository: Repositor
 function createForceReinstallPlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
   return {
     command,
-    mode: 'force-reinstall',
+    mode: WorkflowMode.ForceReinstall,
     title: 'Forced reinstall workflow.',
     plannedChanges: [
       'Refresh only known Lotus-managed file artifacts and directory metadata from the manifest.',
@@ -245,7 +265,7 @@ function createForceReinstallPlan(command: ProjectCommand, repository: Repositor
 function createExternalCorruptionPlan(command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan {
   return {
     command,
-    mode: 'blocked',
+    mode: WorkflowMode.Blocked,
     title: 'External configuration is broken outside Lotus repair scope.',
     plannedChanges: [
       'Stop before applying Lotus artifact changes.',
@@ -266,7 +286,7 @@ function createFreshInstallPlan(
 ): WorkflowPlan {
   return {
     command,
-    mode: 'fresh-install',
+    mode: WorkflowMode.FreshInstall,
     title,
     plannedChanges: [
       'Prepare local Lotus project artifacts in this repository.',
@@ -289,10 +309,10 @@ async function createRemovePlan(
 ): Promise<WorkflowPlan> {
   const removeScope = await resolveRemoveScope(context, state);
 
-  if (removeScope === 'cancel') {
+  if (removeScope === WorkflowAction.Cancel) {
     return {
       command,
-      mode: 'cancel',
+      mode: WorkflowMode.Cancel,
       title: 'Remove canceled before applying changes.',
       plannedChanges: ['No files will be changed.'],
       resultMessage: 'No changes applied.',
@@ -305,7 +325,7 @@ async function createRemovePlan(
 
   return {
     command,
-    mode: 'remove',
+    mode: WorkflowMode.Remove,
     title: `Remove workflow (${formatRemoveScope(removeScope)}).`,
     plannedChanges:
       selectedManagedPaths.length > 0
@@ -327,27 +347,27 @@ async function resolveUpdateAction(context: CommandContext): Promise<WorkflowAct
   const isInteractive = context.isInteractive ?? process.stdin.isTTY;
 
   if (!isInteractive) {
-    return 'update';
+    return WorkflowAction.Update;
   }
 
   const action = await select<WorkflowAction>({
     message: 'Existing Lotus state detected. Choose the next action.',
     options: [
-      { value: 'update', label: 'Update', hint: 'Refresh managed Lotus artifacts.' },
-      { value: 'remove', label: 'Remove', hint: 'Delete known Lotus-managed artifacts.' },
-      { value: 'cancel', label: 'Cancel', hint: 'Exit without changing files.' },
+      { value: WorkflowAction.Update, label: 'Update', hint: 'Refresh managed Lotus artifacts.' },
+      { value: WorkflowAction.Remove, label: 'Remove', hint: 'Delete known Lotus-managed artifacts.' },
+      { value: WorkflowAction.Cancel, label: 'Cancel', hint: 'Exit without changing files.' },
     ],
   });
 
   if (isCancel(action)) {
     cancel('Canceled.');
-    return 'cancel';
+    return WorkflowAction.Cancel;
   }
 
   return action;
 }
 
-async function resolveRemoveScope(context: CommandContext, state: LotusState): Promise<RemoveScope | 'cancel'> {
+async function resolveRemoveScope(context: CommandContext, state: LotusState): Promise<RemoveScope | WorkflowAction.Cancel> {
   if (context.removeScope !== undefined) {
     return removeScopeSchema.parse(context.removeScope);
   }
@@ -355,21 +375,21 @@ async function resolveRemoveScope(context: CommandContext, state: LotusState): P
   const isInteractive = context.isInteractive ?? process.stdin.isTTY;
 
   if (!isInteractive || !state.hasManagedState) {
-    return 'all';
+    return RemoveScope.All;
   }
 
   const scope = await select<RemoveScope>({
     message: 'Choose which Lotus-managed artifacts to remove.',
     options: [
-      { value: 'all', label: 'All', hint: 'Delete all detected Lotus-managed artifacts.' },
-      { value: 'local', label: '.local only', hint: 'Delete detected private Lotus artifacts.' },
-      { value: 'docs', label: '.docs only', hint: 'Delete detected documentation workflow artifacts.' },
+      { value: RemoveScope.All, label: 'All', hint: 'Delete all detected Lotus-managed artifacts.' },
+      { value: RemoveScope.Local, label: '.local only', hint: 'Delete detected private Lotus artifacts.' },
+      { value: RemoveScope.Docs, label: '.docs only', hint: 'Delete detected documentation workflow artifacts.' },
     ],
   });
 
   if (isCancel(scope)) {
     cancel('Canceled.');
-    return 'cancel';
+    return WorkflowAction.Cancel;
   }
 
   return scope;
@@ -427,7 +447,7 @@ async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
       {
         title: 'Run workflow tasks',
         task: async () => {
-          if (plan.mode === 'force-reinstall') {
+          if (plan.mode === WorkflowMode.ForceReinstall) {
             if (plan.repository.root === null) {
               appliedChanges.push('No repository root was available.');
               return;
@@ -441,7 +461,7 @@ async function applyWorkflowPlan(plan: WorkflowPlan): Promise<string[]> {
             return;
           }
 
-          if (plan.mode !== 'remove') {
+          if (plan.mode !== WorkflowMode.Remove) {
             appliedChanges.push('No filesystem changes were required for this orchestration step.');
             return;
           }
@@ -516,32 +536,34 @@ function renderResultSummary(plan: WorkflowPlan, appliedChanges: string[], conte
 }
 
 function createInstallationConfiguration(state: LotusState): InstallationConfiguration {
-  const detectedDocsArtifacts = state.managedPaths.filter((managedPath) => getManagedArtifact(managedPath)?.scope === 'docs');
+  const detectedDocsArtifacts = state.managedPaths.filter(
+    (managedPath) => getManagedArtifact(managedPath)?.scope === ManagedArtifactScope.Docs,
+  );
 
   return {
-    docsMode: detectedDocsArtifacts.length > 0 ? 'committed' : 'local-only',
+    docsMode: detectedDocsArtifacts.length > 0 ? DocsMode.Committed : DocsMode.LocalOnly,
     detectedDocsArtifacts,
   };
 }
 
 function filterManagedPathsByScope(managedPaths: string[], removeScope: RemoveScope): string[] {
-  if (removeScope === 'all') {
-    return managedPaths;
-  }
-
-  return managedPaths.filter((managedPath) => getManagedArtifact(managedPath)?.scope === removeScope);
+  return match(removeScope)
+    .with(RemoveScope.All, () => managedPaths)
+    .with(RemoveScope.Local, () =>
+      managedPaths.filter((managedPath) => getManagedArtifact(managedPath)?.scope === ManagedArtifactScope.Local),
+    )
+    .with(RemoveScope.Docs, () =>
+      managedPaths.filter((managedPath) => getManagedArtifact(managedPath)?.scope === ManagedArtifactScope.Docs),
+    )
+    .exhaustive();
 }
 
 function formatRemoveScope(removeScope: RemoveScope): string {
-  if (removeScope === 'local') {
-    return '.local artifacts';
-  }
-
-  if (removeScope === 'docs') {
-    return '.docs artifacts';
-  }
-
-  return 'all artifacts';
+  return match(removeScope)
+    .with(RemoveScope.Local, () => '.local artifacts')
+    .with(RemoveScope.Docs, () => '.docs artifacts')
+    .with(RemoveScope.All, () => 'all artifacts')
+    .exhaustive();
 }
 
 function formatUserEditableManagedPaths(): string {

@@ -1,27 +1,68 @@
 import { z } from 'zod';
+import { enumValues } from './enumValues';
 import { packageInfo } from './packageInfo';
 
 export const lotusManifestSchemaVersion = 1;
 export const lotusArtifactSchemaVersion = 1;
 export const lotusArtifactContentVersion = packageInfo.version;
 
-export const managedArtifactScopeSchema = z.enum(['local', 'docs']);
-export const managedArtifactKindSchema = z.enum(['file', 'directory']);
-export const managedArtifactTypeSchema = z.enum([
-  'local-guidance',
-  'local-issue-store',
-  'local-review-store',
-  'local-pr-note-store',
-  'docs-guidance',
-  'spec-store',
-  'meeting-draft',
-  'template-store',
-]);
-export const managedContentClassSchema = z.enum(['generated', 'user-editable']);
-export const managedPrivacySchema = z.enum(['private', 'project']);
-export const lotusProfileSchema = z.enum(['local-first', 'linear-first']);
-export const lotusAgentSchema = z.enum(['codex', 'opencode', 'claude', 'cursor']);
-export const migrationStrategySchema = z.enum(['frontmatter', 'structured-sections', 'directory-manifest']);
+export enum ManagedArtifactScope {
+  Local = 'local',
+  Docs = 'docs',
+}
+
+export enum ManagedArtifactKind {
+  File = 'file',
+  Directory = 'directory',
+}
+
+export enum ManagedArtifactType {
+  LocalGuidance = 'local-guidance',
+  LocalIssueStore = 'local-issue-store',
+  LocalReviewStore = 'local-review-store',
+  LocalPrNoteStore = 'local-pr-note-store',
+  DocsGuidance = 'docs-guidance',
+  SpecStore = 'spec-store',
+  MeetingDraft = 'meeting-draft',
+  TemplateStore = 'template-store',
+}
+
+export enum ManagedContentClass {
+  Generated = 'generated',
+  UserEditable = 'user-editable',
+}
+
+export enum ManagedPrivacy {
+  Private = 'private',
+  Project = 'project',
+}
+
+export enum LotusProfile {
+  LocalFirst = 'local-first',
+  LinearFirst = 'linear-first',
+}
+
+export enum LotusAgent {
+  Codex = 'codex',
+  Opencode = 'opencode',
+  Claude = 'claude',
+  Cursor = 'cursor',
+}
+
+export enum MigrationStrategy {
+  Frontmatter = 'frontmatter',
+  StructuredSections = 'structured-sections',
+  DirectoryManifest = 'directory-manifest',
+}
+
+export const managedArtifactScopeSchema = z.enum(enumValues(ManagedArtifactScope));
+export const managedArtifactKindSchema = z.enum(enumValues(ManagedArtifactKind));
+export const managedArtifactTypeSchema = z.enum(enumValues(ManagedArtifactType));
+export const managedContentClassSchema = z.enum(enumValues(ManagedContentClass));
+export const managedPrivacySchema = z.enum(enumValues(ManagedPrivacy));
+export const lotusProfileSchema = z.enum(enumValues(LotusProfile));
+export const lotusAgentSchema = z.enum(enumValues(LotusAgent));
+export const migrationStrategySchema = z.enum(enumValues(MigrationStrategy));
 
 const semanticVersionPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
@@ -91,7 +132,7 @@ export const lotusManifestSchema = z
         });
       }
 
-      if (artifact.path.startsWith('.local/') && artifact.metadata.privacy !== 'private') {
+      if (artifact.path.startsWith('.local/') && artifact.metadata.privacy !== ManagedPrivacy.Private) {
         context.addIssue({
           code: 'custom',
           message: `.local artifacts must be private: ${artifact.path}`,
@@ -99,7 +140,10 @@ export const lotusManifestSchema = z
         });
       }
 
-      if (artifact.metadata.privacy === 'private' && (artifact.packageTemplate.include || artifact.packageTemplate.publicDocsAllowed)) {
+      if (
+        artifact.metadata.privacy === ManagedPrivacy.Private &&
+        (artifact.packageTemplate.include || artifact.packageTemplate.publicDocsAllowed)
+      ) {
         context.addIssue({
           code: 'custom',
           message: `Private artifacts must not be package templates or public docs: ${artifact.path}`,
@@ -109,7 +153,6 @@ export const lotusManifestSchema = z
     }
   });
 
-export type ManagedArtifactScope = z.infer<typeof managedArtifactScopeSchema>;
 export type ManagedArtifact = z.infer<typeof managedArtifactSchema>;
 export type LotusManifest = z.infer<typeof lotusManifestSchema>;
 
@@ -122,118 +165,118 @@ const rawLotusManifest = {
   artifacts: [
     createArtifact({
       path: '.local/AGENTS.md',
-      scope: 'local',
-      kind: 'file',
-      artifactType: 'local-guidance',
-      privacy: 'private',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first', 'linear-first'],
+      scope: ManagedArtifactScope.Local,
+      kind: ManagedArtifactKind.File,
+      artifactType: ManagedArtifactType.LocalGuidance,
+      privacy: ManagedPrivacy.Private,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst, LotusProfile.LinearFirst],
       selectedProcedures: ['private-project-guidance'],
-      migrationStrategy: 'frontmatter',
+      migrationStrategy: MigrationStrategy.Frontmatter,
       includePackageTemplate: false,
       publicDocsAllowed: false,
     }),
     createArtifact({
       path: '.local/issues',
-      scope: 'local',
-      kind: 'directory',
-      artifactType: 'local-issue-store',
-      privacy: 'private',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Local,
+      kind: ManagedArtifactKind.Directory,
+      artifactType: ManagedArtifactType.LocalIssueStore,
+      privacy: ManagedPrivacy.Private,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['task-intake'],
-      migrationStrategy: 'directory-manifest',
+      migrationStrategy: MigrationStrategy.DirectoryManifest,
       includePackageTemplate: false,
       publicDocsAllowed: false,
     }),
     createArtifact({
       path: '.local/issues-notes',
-      scope: 'local',
-      kind: 'directory',
-      artifactType: 'local-issue-store',
-      privacy: 'private',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Local,
+      kind: ManagedArtifactKind.Directory,
+      artifactType: ManagedArtifactType.LocalIssueStore,
+      privacy: ManagedPrivacy.Private,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['task-intake'],
-      migrationStrategy: 'directory-manifest',
+      migrationStrategy: MigrationStrategy.DirectoryManifest,
       includePackageTemplate: false,
       publicDocsAllowed: false,
     }),
     createArtifact({
       path: '.local/reviews',
-      scope: 'local',
-      kind: 'directory',
-      artifactType: 'local-review-store',
-      privacy: 'private',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Local,
+      kind: ManagedArtifactKind.Directory,
+      artifactType: ManagedArtifactType.LocalReviewStore,
+      privacy: ManagedPrivacy.Private,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['pr-intake'],
-      migrationStrategy: 'directory-manifest',
+      migrationStrategy: MigrationStrategy.DirectoryManifest,
       includePackageTemplate: false,
       publicDocsAllowed: false,
     }),
     createArtifact({
       path: '.local/pr-notes',
-      scope: 'local',
-      kind: 'directory',
-      artifactType: 'local-pr-note-store',
-      privacy: 'private',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Local,
+      kind: ManagedArtifactKind.Directory,
+      artifactType: ManagedArtifactType.LocalPrNoteStore,
+      privacy: ManagedPrivacy.Private,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['pr-intake'],
-      migrationStrategy: 'directory-manifest',
+      migrationStrategy: MigrationStrategy.DirectoryManifest,
       includePackageTemplate: false,
       publicDocsAllowed: false,
     }),
     createArtifact({
       path: '.docs/AGENTS.md',
-      scope: 'docs',
-      kind: 'file',
-      artifactType: 'docs-guidance',
-      privacy: 'project',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Docs,
+      kind: ManagedArtifactKind.File,
+      artifactType: ManagedArtifactType.DocsGuidance,
+      privacy: ManagedPrivacy.Project,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: localFirstProcedures,
-      migrationStrategy: 'frontmatter',
+      migrationStrategy: MigrationStrategy.Frontmatter,
       includePackageTemplate: true,
       publicDocsAllowed: true,
     }),
     createArtifact({
       path: '.docs/spec',
-      scope: 'docs',
-      kind: 'directory',
-      artifactType: 'spec-store',
-      privacy: 'project',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Docs,
+      kind: ManagedArtifactKind.Directory,
+      artifactType: ManagedArtifactType.SpecStore,
+      privacy: ManagedPrivacy.Project,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['spec-bootstrap'],
-      migrationStrategy: 'directory-manifest',
+      migrationStrategy: MigrationStrategy.DirectoryManifest,
       includePackageTemplate: true,
       publicDocsAllowed: true,
     }),
     createArtifact({
       path: '.docs/meetings/_draft.md',
-      scope: 'docs',
-      kind: 'file',
-      artifactType: 'meeting-draft',
-      privacy: 'project',
-      contentClass: 'generated',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Docs,
+      kind: ManagedArtifactKind.File,
+      artifactType: ManagedArtifactType.MeetingDraft,
+      privacy: ManagedPrivacy.Project,
+      contentClass: ManagedContentClass.Generated,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['meeting-promotion'],
-      migrationStrategy: 'structured-sections',
+      migrationStrategy: MigrationStrategy.StructuredSections,
       includePackageTemplate: true,
       publicDocsAllowed: true,
     }),
     createArtifact({
       path: '.docs/templates',
-      scope: 'docs',
-      kind: 'directory',
-      artifactType: 'template-store',
-      privacy: 'project',
-      contentClass: 'user-editable',
-      selectedProfiles: ['local-first'],
+      scope: ManagedArtifactScope.Docs,
+      kind: ManagedArtifactKind.Directory,
+      artifactType: ManagedArtifactType.TemplateStore,
+      privacy: ManagedPrivacy.Project,
+      contentClass: ManagedContentClass.UserEditable,
+      selectedProfiles: [LotusProfile.LocalFirst],
       selectedProcedures: ['task-intake', 'pr-intake', 'meeting-promotion', 'spec-bootstrap'],
-      migrationStrategy: 'directory-manifest',
+      migrationStrategy: MigrationStrategy.DirectoryManifest,
       includePackageTemplate: true,
       publicDocsAllowed: true,
     }),
@@ -249,20 +292,20 @@ export function getManagedArtifact(managedPath: string): ManagedArtifact | undef
 }
 
 function isPathInArtifactScope(path: string, scope: ManagedArtifactScope): boolean {
-  return scope === 'local' ? path.startsWith('.local/') : path.startsWith('.docs/');
+  return scope === ManagedArtifactScope.Local ? path.startsWith('.local/') : path.startsWith('.docs/');
 }
 
 type CreateArtifactInput = {
   path: string;
   scope: ManagedArtifactScope;
-  kind: z.infer<typeof managedArtifactKindSchema>;
-  artifactType: z.infer<typeof managedArtifactTypeSchema>;
-  privacy: z.infer<typeof managedPrivacySchema>;
-  contentClass: z.infer<typeof managedContentClassSchema>;
-  selectedProfiles: Array<z.infer<typeof lotusProfileSchema>>;
-  selectedAgents?: Array<z.infer<typeof lotusAgentSchema>>;
+  kind: ManagedArtifactKind;
+  artifactType: ManagedArtifactType;
+  privacy: ManagedPrivacy;
+  contentClass: ManagedContentClass;
+  selectedProfiles: LotusProfile[];
+  selectedAgents?: LotusAgent[];
   selectedProcedures: string[];
-  migrationStrategy: z.infer<typeof migrationStrategySchema>;
+  migrationStrategy: MigrationStrategy;
   includePackageTemplate: boolean;
   publicDocsAllowed: boolean;
 };

@@ -1,16 +1,31 @@
-export type { ProjectCommand } from './commands';
-export { docsModeSchema, projectCommandSchema } from './commands';
-export type { LotusManifest, ManagedArtifact, ManagedArtifactScope } from './manifest';
+export { DocsMode, docsModeSchema, ProjectCommand, projectCommandSchema } from './commands';
+export type { LotusManifest, ManagedArtifact } from './manifest';
 export {
   getManagedArtifact,
+  LotusAgent,
+  LotusProfile,
+  lotusAgentSchema,
   lotusArtifactContentVersion,
   lotusArtifactMetadataSchema,
   lotusArtifactSchemaVersion,
   lotusManifest,
   lotusManifestSchema,
   lotusManifestSchemaVersion,
+  lotusProfileSchema,
+  ManagedArtifactKind,
+  ManagedArtifactScope,
+  ManagedArtifactType,
+  ManagedContentClass,
+  ManagedPrivacy,
+  MigrationStrategy,
+  managedArtifactKindSchema,
   managedArtifactPaths,
+  managedArtifactScopeSchema,
   managedArtifacts,
+  managedArtifactTypeSchema,
+  managedContentClassSchema,
+  managedPrivacySchema,
+  migrationStrategySchema,
 } from './manifest';
 export { buildProgram, runCli } from './program';
 export type {
@@ -18,9 +33,13 @@ export type {
   LotusArtifactState,
   LotusState,
   LotusStateDiagnostic,
+} from './state';
+export {
+  detectLotusState,
   LotusStateStatus,
   LotusValidationReasonCode,
+  lotusStateStatusSchema,
+  lotusValidationReasonCodeSchema,
 } from './state';
-export { detectLotusState, lotusStateStatusSchema, lotusValidationReasonCodeSchema } from './state';
-export type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types';
-export { removeScopeSchema, workflowActionSchema } from './types';
+export type { CliResult, CommandContext, RepositoryState } from './types';
+export { RemoveScope, removeScopeSchema, WorkflowAction, workflowActionSchema } from './types';

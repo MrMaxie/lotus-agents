@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { projectCommandSchema, runProjectCommand } from './commands';
+import { ProjectCommand, projectCommandSchema, runProjectCommand } from './commands';
 import { packageInfo } from './packageInfo';
 import type { CliResult, CommandContext } from './types';
 
@@ -23,7 +23,7 @@ export function buildProgram(context: CommandContext): Command {
   for (const command of projectCommandSchema.options) {
     const projectCommand = program.command(command).description(`Route the LotusAgents ${command} workflow for the current repository.`);
 
-    if (command === 'install' || command === 'update') {
+    if (command === ProjectCommand.Install || command === ProjectCommand.Update) {
       projectCommand.option('--force', 'Force reinstall known Lotus-managed artifacts when repair is needed.');
     }
 

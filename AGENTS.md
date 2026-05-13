@@ -46,9 +46,9 @@ When changing the contract or adoption story:
   requires them.
 - Prefer TypeScript `type` aliases over `interface` declarations unless an
   interface is required.
-- Define reusable enum-like TypeScript value sets as runtime-backed schemas,
-  usually Zod enums, and derive TypeScript types from those schemas instead of
-  duplicating string literal unions.
+- Define reusable enum-like TypeScript value sets as TypeScript string enums
+  and validate them through Zod schemas built from `enumValues(...)`, instead
+  of duplicating string literal unions or inline `z.enum([...])` arrays.
 - Parse enum-like values that cross CLI, file, prompt, config, or other
   untrusted runtime boundaries with Zod before using them.
 - Use single quotes for strings outside JSX. Use double quotes for JSX and HTML

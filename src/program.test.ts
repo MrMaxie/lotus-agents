@@ -3,16 +3,18 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
-import { projectCommandSchema } from './commands';
+import { ProjectCommand, projectCommandSchema } from './commands';
 import {
   lotusArtifactContentVersion,
   lotusArtifactMetadataSchema,
   lotusManifest,
   lotusManifestSchema,
   type ManagedArtifact,
+  ManagedPrivacy,
   managedArtifacts,
 } from './manifest';
 import { buildProgram, runCli } from './program';
+import { RemoveScope, WorkflowAction } from './types';
 
 function createWriters() {
   const stdout: string[] = [];
@@ -95,7 +97,13 @@ describe('LotusAgents CLI', () => {
       ...writers.context,
     });
 
-    expect(program.commands.map((command) => command.name()).sort()).toEqual(['doctor', 'install', 'remove', 'update', 'validate']);
+    expect(program.commands.map((command) => command.name()).sort()).toEqual([
+      ProjectCommand.Doctor,
+      ProjectCommand.Install,
+      ProjectCommand.Remove,
+      ProjectCommand.Update,
+      ProjectCommand.Validate,
+    ]);
   });
 
   it('prints package version globally', async () => {
@@ -160,7 +168,7 @@ describe('LotusAgents CLI', () => {
       );
 
       if (artifact.path.startsWith('.local/')) {
-        expect(artifact.metadata.privacy).toBe('private');
+        expect(artifact.metadata.privacy).toBe(ManagedPrivacy.Private);
         expect(artifact.packageTemplate.include).toBe(false);
         expect(artifact.packageTemplate.publicDocsAllowed).toBe(false);
       }
@@ -365,7 +373,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
         cwd,
-        updateAction: 'update',
+        updateAction: WorkflowAction.Update,
         ...writers.context,
       });
 
@@ -398,7 +406,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
         cwd,
-        updateAction: 'update',
+        updateAction: WorkflowAction.Update,
         forceReinstall: true,
         ...writers.context,
       });
@@ -450,7 +458,7 @@ describe('LotusAgents CLI', () => {
 
   it('keeps fresh install available when only external configuration is broken', async ({ task }) => {
     for (const command of projectCommandSchema.options.filter(
-      (projectCommand) => projectCommand === 'install' || projectCommand === 'update',
+      (projectCommand) => projectCommand === ProjectCommand.Install || projectCommand === ProjectCommand.Update,
     )) {
       const cwd = await mkdtemp(join(tmpdir(), `lotusagents-${task.id}-${command}-`));
 
@@ -461,7 +469,7 @@ describe('LotusAgents CLI', () => {
         const writers = createWriters();
         const result = await runCli(['node', 'lotusagents', command], {
           cwd,
-          updateAction: 'update',
+          updateAction: WorkflowAction.Update,
           forceReinstall: true,
           ...writers.context,
         });
@@ -470,7 +478,9 @@ describe('LotusAgents CLI', () => {
 
         expect(result.exitCode).toBe(0);
         expect(output).toContain(
-          command === 'install' ? 'Fresh install workflow.' : 'No existing Lotus state detected; running fresh install workflow.',
+          command === ProjectCommand.Install
+            ? 'Fresh install workflow.'
+            : 'No existing Lotus state detected; running fresh install workflow.',
         );
         expect(output).not.toContain('External configuration is broken outside Lotus repair scope.');
         expect(output).not.toContain('No Lotus repair changes applied.');
@@ -491,7 +501,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
         cwd,
-        updateAction: 'update',
+        updateAction: WorkflowAction.Update,
         forceReinstall: true,
         ...writers.context,
       });
@@ -565,7 +575,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'install'], {
         cwd,
-        updateAction: 'cancel',
+        updateAction: WorkflowAction.Cancel,
         ...writers.context,
       });
 
@@ -588,7 +598,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
         cwd,
-        updateAction: 'remove',
+        updateAction: WorkflowAction.Remove,
         ...writers.context,
       });
 
@@ -614,7 +624,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
         cwd,
-        updateAction: 'update',
+        updateAction: WorkflowAction.Update,
         ...writers.context,
       });
 
@@ -639,7 +649,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'update'], {
         cwd,
-        updateAction: 'cancel',
+        updateAction: WorkflowAction.Cancel,
         ...writers.context,
       });
 
@@ -691,7 +701,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'remove'], {
         cwd,
-        removeScope: 'all',
+        removeScope: RemoveScope.All,
         ...writers.context,
       });
 
@@ -719,7 +729,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'remove'], {
         cwd,
-        removeScope: 'all',
+        removeScope: RemoveScope.All,
         ...writers.context,
       });
 
@@ -743,7 +753,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'remove'], {
         cwd,
-        removeScope: 'all',
+        removeScope: RemoveScope.All,
         ...writers.context,
       });
 
@@ -770,7 +780,7 @@ describe('LotusAgents CLI', () => {
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'remove'], {
         cwd,
-        removeScope: 'docs',
+        removeScope: RemoveScope.Docs,
         ...writers.context,
       });
 

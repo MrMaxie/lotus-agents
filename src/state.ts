@@ -1,14 +1,18 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parse as parseToml } from 'smol-toml';
+import { match } from 'ts-pattern';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
+import { enumValues } from './enumValues';
 import {
   lotusAgentSchema,
   lotusArtifactContentVersion,
   lotusArtifactSchemaVersion,
   lotusProfileSchema,
   type ManagedArtifact,
+  ManagedArtifactKind,
+  managedArtifactKindSchema,
   managedArtifactScopeSchema,
   managedArtifacts,
   managedArtifactTypeSchema,
@@ -17,35 +21,40 @@ import {
 } from './manifest';
 import type { RepositoryState } from './types';
 
-export const lotusStateStatusSchema = z.enum([
-  'missing',
-  'valid',
-  'outdated',
-  'partially-installed',
-  'damaged-lotus-artifact',
-  'external-corruption',
-]);
-export const lotusValidationReasonCodeSchema = z.enum([
-  'managed-artifacts-missing',
-  'managed-artifacts-valid',
-  'managed-artifacts-outdated',
-  'managed-artifacts-partial',
-  'artifact-kind-mismatch',
-  'artifact-metadata-missing',
-  'artifact-metadata-invalid',
-  'external-config-invalid',
-]);
-const artifactFilesystemKindSchema = z.enum(['file', 'directory']);
-const lotusArtifactDamageReasonCodeSchema = z.enum(['artifact-kind-mismatch', 'artifact-metadata-missing', 'artifact-metadata-invalid']);
+export enum LotusStateStatus {
+  Missing = 'missing',
+  Valid = 'valid',
+  Outdated = 'outdated',
+  PartiallyInstalled = 'partially-installed',
+  DamagedLotusArtifact = 'damaged-lotus-artifact',
+  ExternalCorruption = 'external-corruption',
+}
 
-export type LotusStateStatus = z.infer<typeof lotusStateStatusSchema>;
-export type LotusValidationReasonCode = z.infer<typeof lotusValidationReasonCodeSchema>;
-type ArtifactFilesystemKind = z.infer<typeof artifactFilesystemKindSchema>;
+export enum LotusValidationReasonCode {
+  ManagedArtifactsMissing = 'managed-artifacts-missing',
+  ManagedArtifactsValid = 'managed-artifacts-valid',
+  ManagedArtifactsOutdated = 'managed-artifacts-outdated',
+  ManagedArtifactsPartial = 'managed-artifacts-partial',
+  ArtifactKindMismatch = 'artifact-kind-mismatch',
+  ArtifactMetadataMissing = 'artifact-metadata-missing',
+  ArtifactMetadataInvalid = 'artifact-metadata-invalid',
+  ExternalConfigInvalid = 'external-config-invalid',
+}
+
+export const lotusStateStatusSchema = z.enum(enumValues(LotusStateStatus));
+export const lotusValidationReasonCodeSchema = z.enum(enumValues(LotusValidationReasonCode));
+
+enum MetadataReadStatus {
+  Missing = 'missing',
+  Invalid = 'invalid',
+  NotRequired = 'not-required',
+  Present = 'present',
+}
 
 export type ArtifactKindMismatch = {
   path: string;
-  expectedKind: ArtifactFilesystemKind;
-  actualKind: ArtifactFilesystemKind;
+  expectedKind: ManagedArtifactKind;
+  actualKind: ManagedArtifactKind;
 };
 
 export type LotusStateDiagnostic = {
@@ -56,7 +65,7 @@ export type LotusStateDiagnostic = {
 
 export type LotusArtifactState = {
   path: string;
-  status: Exclude<LotusStateStatus, 'external-corruption' | 'partially-installed'>;
+  status: Exclude<LotusStateStatus, LotusStateStatus.ExternalCorruption | LotusStateStatus.PartiallyInstalled>;
   diagnostics: LotusStateDiagnostic[];
   kindMismatch?: ArtifactKindMismatch;
 };
@@ -99,10 +108,12 @@ export async function detectLotusState(repository: RepositoryState): Promise<Lot
 
   const artifactStates = await Promise.all(managedArtifacts.map((artifact) => validateManagedArtifact(root, artifact)));
   const externalDiagnostics = await validateExternalConfiguration(root);
-  const presentArtifacts = artifactStates.filter((artifact) => artifact.status !== 'missing' && artifact.kindMismatch === undefined);
+  const presentArtifacts = artifactStates.filter(
+    (artifact) => artifact.status !== LotusStateStatus.Missing && artifact.kindMismatch === undefined,
+  );
   const managedPaths = presentArtifacts.map((artifact) => artifact.path);
   const invalidManagedPaths = artifactStates.flatMap((artifact) => (artifact.kindMismatch === undefined ? [] : [artifact.kindMismatch]));
-  const missingManagedPaths = artifactStates.flatMap((artifact) => (artifact.status === 'missing' ? [artifact.path] : []));
+  const missingManagedPaths = artifactStates.flatMap((artifact) => (artifact.status === LotusStateStatus.Missing ? [artifact.path] : []));
   const diagnostics = [...artifactStates.flatMap((artifact) => artifact.diagnostics), ...externalDiagnostics];
 
   return summarizeState({
@@ -120,7 +131,7 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
 
   try {
     const stats = await lstat(absolutePath);
-    const actualKind = artifactFilesystemKindSchema.parse(stats.isDirectory() ? 'directory' : 'file');
+    const actualKind = managedArtifactKindSchema.parse(stats.isDirectory() ? ManagedArtifactKind.Directory : ManagedArtifactKind.File);
 
     if (actualKind !== artifact.kind) {
       const kindMismatch = {
@@ -131,12 +142,12 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
 
       return {
         path: artifact.path,
-        status: 'damaged-lotus-artifact',
+        status: LotusStateStatus.DamagedLotusArtifact,
         kindMismatch,
         diagnostics: [
           {
             path: artifact.path,
-            reasonCode: 'artifact-kind-mismatch',
+            reasonCode: LotusValidationReasonCode.ArtifactKindMismatch,
             message: `Expected ${artifact.path} to be a ${artifact.kind}, but found a ${actualKind}.`,
           },
         ],
@@ -145,36 +156,36 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
 
     const metadataResult = await readArtifactMetadata(absolutePath, artifact);
 
-    if (metadataResult.status === 'not-required') {
+    if (metadataResult.status === MetadataReadStatus.NotRequired) {
       return {
         path: artifact.path,
-        status: 'valid',
+        status: LotusStateStatus.Valid,
         diagnostics: [],
       };
     }
 
-    if (metadataResult.status === 'missing') {
+    if (metadataResult.status === MetadataReadStatus.Missing) {
       return {
         path: artifact.path,
-        status: 'outdated',
+        status: LotusStateStatus.Outdated,
         diagnostics: [
           {
             path: artifact.path,
-            reasonCode: 'artifact-metadata-missing',
+            reasonCode: LotusValidationReasonCode.ArtifactMetadataMissing,
             message: `Missing Lotus metadata for ${artifact.path}; this legacy artifact needs current Lotus metadata.`,
           },
         ],
       };
     }
 
-    if (metadataResult.status === 'invalid') {
+    if (metadataResult.status === MetadataReadStatus.Invalid) {
       return {
         path: artifact.path,
-        status: 'damaged-lotus-artifact',
+        status: LotusStateStatus.DamagedLotusArtifact,
         diagnostics: [
           {
             path: artifact.path,
-            reasonCode: 'artifact-metadata-invalid',
+            reasonCode: LotusValidationReasonCode.ArtifactMetadataInvalid,
             message: metadataResult.message,
           },
         ],
@@ -186,18 +197,18 @@ async function validateManagedArtifact(root: string, artifact: ManagedArtifact):
     if (isMissingPathError(error)) {
       return {
         path: artifact.path,
-        status: 'missing',
+        status: LotusStateStatus.Missing,
         diagnostics: [],
       };
     }
 
     return {
       path: artifact.path,
-      status: 'damaged-lotus-artifact',
+      status: LotusStateStatus.DamagedLotusArtifact,
       diagnostics: [
         {
           path: artifact.path,
-          reasonCode: 'artifact-metadata-invalid',
+          reasonCode: LotusValidationReasonCode.ArtifactMetadataInvalid,
           message: `Could not inspect ${artifact.path}.`,
         },
       ],
@@ -214,7 +225,7 @@ async function readArtifactMetadata(absolutePath: string, artifact: ManagedArtif
     return readDirectoryMetadata(absolutePath);
   }
 
-  return { status: 'not-required' };
+  return { status: MetadataReadStatus.NotRequired };
 }
 
 async function readFileMetadata(absolutePath: string): Promise<MetadataReadResult> {
@@ -222,17 +233,17 @@ async function readFileMetadata(absolutePath: string): Promise<MetadataReadResul
   const frontmatter = extractFrontmatter(content);
 
   if (frontmatter === null) {
-    return { status: 'missing' };
+    return { status: MetadataReadStatus.Missing };
   }
 
   try {
     return {
-      status: 'present',
+      status: MetadataReadStatus.Present,
       metadata: parseYaml(frontmatter),
     };
   } catch (error) {
     return {
-      status: 'invalid',
+      status: MetadataReadStatus.Invalid,
       message: `Invalid Lotus metadata frontmatter: ${formatParserError(error)}.`,
     };
   }
@@ -246,16 +257,16 @@ async function readDirectoryMetadata(absolutePath: string): Promise<MetadataRead
     const parsed = JSON.parse(content) as unknown;
 
     return {
-      status: 'present',
+      status: MetadataReadStatus.Present,
       metadata: unwrapDirectoryMetadata(parsed),
     };
   } catch (error) {
     if (isMissingPathError(error)) {
-      return { status: 'missing' };
+      return { status: MetadataReadStatus.Missing };
     }
 
     return {
-      status: 'invalid',
+      status: MetadataReadStatus.Invalid,
       message: `Invalid Lotus directory manifest ${directoryManifestFileName}: ${formatParserError(error)}.`,
     };
   }
@@ -267,11 +278,11 @@ function validateArtifactMetadata(artifact: ManagedArtifact, rawMetadata: unknow
   if (!parsed.success) {
     return {
       path: artifact.path,
-      status: 'damaged-lotus-artifact',
+      status: LotusStateStatus.DamagedLotusArtifact,
       diagnostics: [
         {
           path: artifact.path,
-          reasonCode: 'artifact-metadata-invalid',
+          reasonCode: LotusValidationReasonCode.ArtifactMetadataInvalid,
           message: `Invalid Lotus metadata for ${artifact.path}: ${z.prettifyError(parsed.error)}.`,
         },
       ],
@@ -284,11 +295,11 @@ function validateArtifactMetadata(artifact: ManagedArtifact, rawMetadata: unknow
   if (mismatch !== null) {
     return {
       path: artifact.path,
-      status: 'damaged-lotus-artifact',
+      status: LotusStateStatus.DamagedLotusArtifact,
       diagnostics: [
         {
           path: artifact.path,
-          reasonCode: 'artifact-metadata-invalid',
+          reasonCode: LotusValidationReasonCode.ArtifactMetadataInvalid,
           message: mismatch,
         },
       ],
@@ -298,11 +309,11 @@ function validateArtifactMetadata(artifact: ManagedArtifact, rawMetadata: unknow
   if (metadata.schemaVersion !== lotusArtifactSchemaVersion || metadata.contentVersion !== lotusArtifactContentVersion) {
     return {
       path: artifact.path,
-      status: 'outdated',
+      status: LotusStateStatus.Outdated,
       diagnostics: [
         {
           path: artifact.path,
-          reasonCode: 'managed-artifacts-outdated',
+          reasonCode: LotusValidationReasonCode.ManagedArtifactsOutdated,
           message: `${artifact.path} uses Lotus metadata v${metadata.schemaVersion} and content ${metadata.contentVersion}; expected v${lotusArtifactSchemaVersion} and content ${lotusArtifactContentVersion}.`,
         },
       ],
@@ -311,7 +322,7 @@ function validateArtifactMetadata(artifact: ManagedArtifact, rawMetadata: unknow
 
   return {
     path: artifact.path,
-    status: 'valid',
+    status: LotusStateStatus.Valid,
     diagnostics: [],
   };
 }
@@ -332,7 +343,7 @@ async function validateExternalConfiguration(root: string): Promise<LotusStateDi
     return [
       {
         path: '.codex/config.toml',
-        reasonCode: 'external-config-invalid',
+        reasonCode: LotusValidationReasonCode.ExternalConfigInvalid,
         message: `External Codex configuration is not valid TOML and is outside Lotus repair scope: ${formatParserError(error)}.`,
       },
     ];
@@ -350,27 +361,44 @@ function summarizeState(input: {
   const { artifactStates, diagnostics, externalDiagnostics, invalidManagedPaths, managedPaths, missingManagedPaths } = input;
 
   if (externalDiagnostics.length > 0) {
-    return createState('external-corruption', 'external-config-invalid', 'External configuration is broken outside Lotus scope.', input);
+    return createState(
+      LotusStateStatus.ExternalCorruption,
+      LotusValidationReasonCode.ExternalConfigInvalid,
+      'External configuration is broken outside Lotus scope.',
+      input,
+    );
   }
 
-  if (artifactStates.some((artifact) => artifact.status === 'damaged-lotus-artifact')) {
+  if (artifactStates.some((artifact) => artifact.status === LotusStateStatus.DamagedLotusArtifact)) {
     const damagedDiagnostics = artifactStates
-      .filter((artifact) => artifact.status === 'damaged-lotus-artifact')
+      .filter((artifact) => artifact.status === LotusStateStatus.DamagedLotusArtifact)
       .flatMap((artifact) => artifact.diagnostics);
-    const damagedDiagnostic = damagedDiagnostics.find(
-      (diagnostic) => lotusArtifactDamageReasonCodeSchema.safeParse(diagnostic.reasonCode).success,
+    const damagedDiagnostic = damagedDiagnostics.find((diagnostic) =>
+      match(diagnostic.reasonCode)
+        .with(
+          LotusValidationReasonCode.ArtifactKindMismatch,
+          LotusValidationReasonCode.ArtifactMetadataMissing,
+          LotusValidationReasonCode.ArtifactMetadataInvalid,
+          () => true,
+        )
+        .otherwise(() => false),
     );
 
     return createState(
-      'damaged-lotus-artifact',
-      damagedDiagnostic?.reasonCode ?? 'artifact-metadata-invalid',
+      LotusStateStatus.DamagedLotusArtifact,
+      damagedDiagnostic?.reasonCode ?? LotusValidationReasonCode.ArtifactMetadataInvalid,
       'One or more Lotus-managed artifacts are damaged.',
       input,
     );
   }
 
-  if (artifactStates.some((artifact) => artifact.status === 'outdated')) {
-    return createState('outdated', 'managed-artifacts-outdated', 'One or more Lotus-managed artifacts are outdated.', input);
+  if (artifactStates.some((artifact) => artifact.status === LotusStateStatus.Outdated)) {
+    return createState(
+      LotusStateStatus.Outdated,
+      LotusValidationReasonCode.ManagedArtifactsOutdated,
+      'One or more Lotus-managed artifacts are outdated.',
+      input,
+    );
   }
 
   if (managedPaths.length === 0) {
@@ -378,12 +406,17 @@ function summarizeState(input: {
   }
 
   if (missingManagedPaths.length > 0) {
-    return createState('partially-installed', 'managed-artifacts-partial', 'Some Lotus-managed artifacts are missing.', input);
+    return createState(
+      LotusStateStatus.PartiallyInstalled,
+      LotusValidationReasonCode.ManagedArtifactsPartial,
+      'Some Lotus-managed artifacts are missing.',
+      input,
+    );
   }
 
   return {
-    status: 'valid',
-    reasonCode: 'managed-artifacts-valid',
+    status: LotusStateStatus.Valid,
+    reasonCode: LotusValidationReasonCode.ManagedArtifactsValid,
     message: 'All Lotus-managed artifacts are present and current.',
     hasManagedState: true,
     managedPaths,
@@ -421,8 +454,8 @@ function createState(
 
 function createMissingState(diagnostics: LotusStateDiagnostic[]): LotusState {
   return {
-    status: 'missing',
-    reasonCode: 'managed-artifacts-missing',
+    status: LotusStateStatus.Missing,
+    reasonCode: LotusValidationReasonCode.ManagedArtifactsMissing,
     message: 'No Lotus-managed artifacts were found.',
     hasManagedState: false,
     managedPaths: [],
@@ -431,7 +464,7 @@ function createMissingState(diagnostics: LotusStateDiagnostic[]): LotusState {
     diagnostics,
     artifacts: managedArtifacts.map((artifact) => ({
       path: artifact.path,
-      status: 'missing',
+      status: LotusStateStatus.Missing,
       diagnostics: [],
     })),
   };
@@ -479,7 +512,7 @@ function formatParserError(error: unknown): string {
 }
 
 type MetadataReadResult =
-  | { status: 'missing' }
-  | { status: 'invalid'; message: string }
-  | { status: 'not-required' }
-  | { status: 'present'; metadata: unknown };
+  | { status: MetadataReadStatus.Missing }
+  | { status: MetadataReadStatus.Invalid; message: string }
+  | { status: MetadataReadStatus.NotRequired }
+  | { status: MetadataReadStatus.Present; metadata: unknown };
