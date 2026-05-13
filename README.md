@@ -79,16 +79,17 @@ machine-readable metadata for scope, artifact type, schema version, content
 version, privacy, selected profiles, selected agents, selected procedures,
 content class, and migration strategy.
 
-The installer and updater can also generate coding-agent entrypoints for
-Codex, OpenCode, Claude, and Cursor. Use `--recommended-agents` to select all
-agents detected from repository conventions, repeat `--agent <agent>` for an
-explicit selection, or pass `--no-agent-artifacts` to keep agent files out of
-the run. Codex and OpenCode share a common `AGENTS.md` artifact when selected
-together. Claude receives `CLAUDE.md`, and Cursor receives
-`.cursor/rules/lotus.mdc`. Each generated file points back to shared Lotus
-semantics in `.local/AGENTS.md` and `.docs/AGENTS.md` instead of duplicating
-conflicting workflow rules. Existing non-Lotus files at those paths are left in
-place and reported rather than overwritten.
+Agent entrypoint generation supports Codex, OpenCode, Claude, and Cursor:
+
+- `--recommended-agents` selects all detected agents
+- `--agent <agent>` selects explicit agents and can be repeated
+- `--no-agent-artifacts` skips agent entrypoint files
+- Codex and OpenCode share `AGENTS.md`
+- Claude uses `CLAUDE.md`
+- Cursor uses `.cursor/rules/lotus.mdc`
+
+Generated files point back to `.local/AGENTS.md` and `.docs/AGENTS.md`.
+Existing non-Lotus files are reported and left untouched.
 
 ## Local Development
 
