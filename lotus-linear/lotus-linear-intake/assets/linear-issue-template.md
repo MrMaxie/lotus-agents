@@ -23,4 +23,5 @@
 
 ## Branch And PR
 - Branch: <branch-name|not-started|not-applicable>
+- PR Title: <actual PR title|not-opened|not-applicable>
 - PR: <url|not-opened|not-applicable>

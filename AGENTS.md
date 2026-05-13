@@ -78,6 +78,34 @@ If you change naming, paths, or adoption flow, review at least:
 - `lotus-linear/`
 - any affected skill directories under those package roots
 
+## Branch And Pull Request Hygiene
+
+- Branch names for implementation work must use exactly one of these patterns:
+  `feat/<taskid>`, `fix/<taskid>`, `chore/<taskid>`, or
+  `epic/<epictaskid>`
+- `<taskid>` and `<epictaskid>` must be the lowercase Linear issue identifier,
+  for example `feat/max-77`, `chore/max-82`, or `epic/max-72`
+- reject other branch formats, including Linear-generated or personal-prefix
+  names such as `maxie/max-77-...`, descriptive slug branches, and
+  `feature/<taskid>`
+- pull request titles must use
+  `<TASKID>: <short Linear-aligned description>`, for example
+  `MAX-77: Implement repair and forced reinstall guidance`
+- use `.github/PULL_REQUEST_TEMPLATE.md` when opening GitHub pull requests and
+  fill every applicable section
+- write PR titles, descriptions, implementation notes, verification notes, and
+  risks in English
+- open implementation PRs ready for review by default; use draft PRs only when
+  the human explicitly asks for a draft
+- leave Linear issues, GitHub pull requests, and related workflow tasks
+  unassigned unless the human explicitly asks for assignment or the next step is
+  a clearly manual human action such as PR review, manual verification, or
+  approval
+- do not automatically assign the repository owner, current user, or any other
+  person as a convenience default
+- keep Linear current by updating issue status, progress comments, and PR links
+  when the work state changes materially
+
 ## Linear Issue Implementation Workflow
 
 Use this workflow when a human asks you to implement a Linear issue through
@@ -92,18 +120,25 @@ GitHub PRs. It is for implementation work, not review-only or test-only tasks.
    code changes yet, use one empty conventional commit that opens the branch.
 4. Open the epic PR as a regular, non-draft PR into the default branch and link it to the epic
    issue in Linear.
-5. Create the feature branch from the epic branch. Name branches from the issue
-   identifier when the human provides one, but do not hardcode any specific
-   issue or epic IDs into this workflow.
+5. Create the implementation branch from the epic branch when the issue belongs
+   to an epic; otherwise create it from the default branch. Name it with the
+   exact branch patterns above.
 6. Move the Linear issue to the active implementation status before coding.
-7. Commit small, coherent work ranges with English conventional commit messages
-   without scopes, and push after each meaningful range.
-8. Keep repository docs and agent-facing rules aligned with code changes when
+7. Before committing, inspect the worktree with
+   `git status --short --branch --untracked-files=all`, stage only intended
+   files, and exclude test leftovers, generated scratch files, logs, traces, and
+   debug artifacts.
+8. Commit small, reviewable, coherent work ranges with English conventional
+   commit messages without scopes, and push after each meaningful range.
+9. Keep repository docs and agent-facing rules aligned with code changes when
    the change affects adoption flow, package usage, or workflow contracts.
-9. Run the relevant checks locally before opening the feature PR.
-10. Open the feature PR into the epic branch as a regular, non-draft PR, link
-    it to the Linear issue, add a concise implementation summary, and move the
-    issue to the review status.
+10. Run the relevant checks locally before opening the implementation PR.
+11. Open the implementation PR into the epic branch when one exists; otherwise
+    open it into the default branch. Use the repository pull request template,
+    the required PR title format, no automatic assignees, and ready-for-review
+    status unless the human explicitly asked for a draft.
+12. Link the PR to the Linear issue, add a concise implementation summary, and
+    move the issue to the review status.
 
 ## Source Of Truth For This Repo
 
