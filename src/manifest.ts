@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { packageInfo } from './packageInfo.js';
+import { packageInfo } from './packageInfo';
 
 export const lotusManifestSchemaVersion = 1;
 export const lotusArtifactSchemaVersion = 1;

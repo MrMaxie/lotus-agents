@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { cancel, isCancel, select } from '@clack/prompts';
 import { Listr } from 'listr2';
 import pc from 'picocolors';
-import { getManagedArtifact, lotusManifest, type ManagedArtifact, managedArtifacts } from './manifest.js';
-import { detectRepository } from './repository.js';
-import { detectLotusState, type LotusState } from './state.js';
-import type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types.js';
+import { getManagedArtifact, lotusManifest, type ManagedArtifact, managedArtifacts } from './manifest';
+import { detectRepository } from './repository';
+import { detectLotusState, type LotusState } from './state';
+import type { CliResult, CommandContext, RemoveScope, RepositoryState, WorkflowAction } from './types';
 
 type ProjectCommand = 'install' | 'update' | 'remove' | 'doctor' | 'validate';
 

@@ -10,8 +10,8 @@ import {
   lotusManifestSchema,
   type ManagedArtifact,
   managedArtifacts,
-} from './manifest.js';
-import { buildProgram, runCli } from './program.js';
+} from './manifest';
+import { buildProgram, runCli } from './program';
 
 function createWriters() {
   const stdout: string[] = [];

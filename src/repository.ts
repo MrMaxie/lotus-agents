@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import type { RepositoryState } from './types.js';
+import type { RepositoryState } from './types';
 
 export async function detectRepository(cwd: string): Promise<RepositoryState> {
   try {

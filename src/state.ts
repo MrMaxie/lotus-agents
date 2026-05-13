@@ -14,8 +14,8 @@ import {
   managedArtifactTypeSchema,
   managedContentClassSchema,
   managedPrivacySchema,
-} from './manifest.js';
-import type { RepositoryState } from './types.js';
+} from './manifest';
+import type { RepositoryState } from './types';
 
 export type LotusStateStatus = 'missing' | 'valid' | 'outdated' | 'partially-installed' | 'damaged-lotus-artifact' | 'external-corruption';
 
