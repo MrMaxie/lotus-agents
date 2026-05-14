@@ -15,6 +15,8 @@ Use this skill when a repository needs the base Lotus setup.
    - `.local/issues-notes/`
    - `.local/reviews/`
    - `.local/pr-notes/`
+   - `.local/WORKFLOW.md`
+   - `.local/workflow.lotus.json`
    - `.docs/AGENTS.md`
    - `.docs/spec/`
    - `.docs/meetings/`
@@ -41,6 +43,9 @@ Use this skill when a repository needs the base Lotus setup.
     `assets/local-reviews.lotus.json`
   - `.local/pr-notes/` with `.local/pr-notes/.lotus.json` from
     `assets/local-pr-notes.lotus.json`
+  - `.local/WORKFLOW.md` from `assets/local-workflow.md`
+  - `.local/workflow.lotus.json` from the CLI-generated workflow config when
+    profile or task-source choices are known
   - `.docs/AGENTS.md` from `assets/docs-agents.md`
   - `.docs/spec/` with `.docs/spec/.lotus.json` from
     `assets/docs-spec.lotus.json`
@@ -87,5 +92,6 @@ Use this skill when a repository needs the base Lotus setup.
 - `assets/local-issues-notes.lotus.json`
 - `assets/local-reviews.lotus.json`
 - `assets/local-pr-notes.lotus.json`
+- `assets/local-workflow.md`
 - `assets/docs-spec.lotus.json`
 - `assets/docs-templates.lotus.json`

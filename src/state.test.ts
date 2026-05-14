@@ -16,10 +16,11 @@ describe('state', () => {
 
     try {
       await createManagedArtifacts(cwd);
+      const docsAgentsArtifact = managedArtifact('.docs/AGENTS.md');
       await createFile(
         cwd,
         '.docs/AGENTS.md',
-        `---\n${JSON.stringify(managedArtifacts[5].metadata, null, 2)}\n---\n# Docs guidance\n\nCustom project notes.\n`,
+        `---\n${JSON.stringify(docsAgentsArtifact.metadata, null, 2)}\n---\n# Docs guidance\n\nCustom project notes.\n`,
       );
 
       const state = await detectRepositoryState(cwd);
@@ -72,7 +73,7 @@ describe('state', () => {
     const cwd = await createTempRepository(task.id);
 
     try {
-      await createManagedArtifact(cwd, managedArtifacts[5]);
+      await createManagedArtifact(cwd, managedArtifact('.docs/AGENTS.md'));
 
       const state = await detectRepositoryState(cwd);
 
@@ -136,3 +137,13 @@ describe('state', () => {
     }
   });
 });
+
+const managedArtifact = (path: string) => {
+  const artifact = managedArtifacts.find((candidate) => candidate.path === path);
+
+  if (artifact === undefined) {
+    throw new Error(`Missing managed artifact fixture for ${path}.`);
+  }
+
+  return artifact;
+};

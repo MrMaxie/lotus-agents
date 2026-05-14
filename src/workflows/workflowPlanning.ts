@@ -1,11 +1,13 @@
+import { lstat } from 'node:fs/promises';
+import { join } from 'node:path';
 import { match } from 'ts-pattern';
-import { getManagedArtifact, lotusManifest, ManagedArtifactScope, managedArtifacts } from '../manifest';
+import { getManagedArtifact, type LotusProfile, lotusManifest, ManagedArtifactScope, managedArtifacts } from '../manifest';
 import { ProjectCommand } from '../projectCommands';
 import { type LotusState, LotusStateStatus } from '../state';
 import { type CommandContext, RemoveScope, type RepositoryState, WorkflowAction } from '../types';
 import { createInstallationConfiguration } from './installationConfiguration';
 import { formatRemoveScope, formatUserEditableManagedPaths } from './workflowFormatting';
-import { resolveRemoveScope, resolveUpdateAction } from './workflowPrompts';
+import { isWorkflowPromptCanceledError, resolveRemoveScope, resolveUpdateAction } from './workflowPrompts';
 import { WorkflowMode, type WorkflowPlan } from './workflowTypes';
 
 const diagnosticMessages: Record<ProjectCommand.Doctor | ProjectCommand.Validate, string> = {
@@ -105,7 +107,21 @@ const createUpdateActionPlan = async (
     return createRepairGuidancePlan(command, repository, state);
   }
 
-  const configuration = await createInstallationConfiguration(repository, state, context);
+  const configuration = await createInstallationConfiguration(repository, state, context).catch((error: unknown) => {
+    if (isWorkflowPromptCanceledError(error)) {
+      return null;
+    }
+
+    throw error;
+  });
+
+  if (configuration === null) {
+    return createCanceledPlan(command, repository, state);
+  }
+
+  if (configuration.selectedProfiles.length === 0) {
+    return createRemovePlan(command, repository, state, context, 'No Lotus profiles were selected; removing profile artifacts.');
+  }
 
   return {
     command,
@@ -114,6 +130,8 @@ const createUpdateActionPlan = async (
     plannedChanges: [
       'Inspect existing managed Lotus artifacts.',
       `Prefill installation configuration from detected state: .docs ${configuration.docsMode}.`,
+      `Use selected profiles: ${configuration.selectedProfiles.join(', ')}.`,
+      'Write private workflow configuration to .local/workflow.lotus.json.',
       'Prepare local-only project artifact updates.',
     ],
     resultMessage: 'Update workflow completed.',
@@ -146,6 +164,8 @@ const createRepairGuidancePlan = (command: ProjectCommand, repository: Repositor
 };
 
 const createForceReinstallPlan = (command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan => {
+  const forceReinstallArtifacts = getForceReinstallArtifacts(state.selectedProfiles);
+
   return {
     command,
     mode: WorkflowMode.ForceReinstall,
@@ -160,8 +180,18 @@ const createForceReinstallPlan = (command: ProjectCommand, repository: Repositor
     resultMessage: 'Forced reinstall completed.',
     state,
     repository,
-    forceReinstallArtifacts: managedArtifacts,
+    forceReinstallArtifacts,
   };
+};
+
+const getForceReinstallArtifacts = (selectedProfiles: LotusProfile[] | null) => {
+  if (selectedProfiles === null || selectedProfiles.length === 0) {
+    return managedArtifacts;
+  }
+
+  const selectedProfileSet = new Set(selectedProfiles);
+
+  return managedArtifacts.filter((artifact) => artifact.metadata.selectedProfiles.some((profile) => selectedProfileSet.has(profile)));
 };
 
 const createExternalCorruptionPlan = (command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan => {
@@ -187,7 +217,21 @@ const createFreshInstallPlan = async (
   context: CommandContext,
   title = 'Fresh install workflow.',
 ): Promise<WorkflowPlan> => {
-  const configuration = await createInstallationConfiguration(repository, state, context);
+  const configuration = await createInstallationConfiguration(repository, state, context).catch((error: unknown) => {
+    if (isWorkflowPromptCanceledError(error)) {
+      return null;
+    }
+
+    throw error;
+  });
+
+  if (configuration === null) {
+    return createCanceledPlan(command, repository, state);
+  }
+
+  if (configuration.selectedProfiles.length === 0) {
+    return createRemovePlan(command, repository, state, context, 'No Lotus profiles were selected; removing profile artifacts.');
+  }
 
   return {
     command,
@@ -196,6 +240,8 @@ const createFreshInstallPlan = async (
     plannedChanges: [
       'Prepare local Lotus project artifacts in this repository.',
       'Keep project artifacts local even when the CLI is run globally.',
+      `Use selected profiles: ${configuration.selectedProfiles.join(', ')}.`,
+      'Write private workflow configuration to .local/workflow.lotus.json and private workflow notes to .local/WORKFLOW.md.',
       'Configure .docs visibility from the repository adoption choice.',
       'Detect likely available coding agents and report what was found.',
       'Generate selected agent entrypoint files using common-first conventions.',
@@ -213,6 +259,7 @@ const createRemovePlan = async (
   repository: RepositoryState,
   state: LotusState,
   context: CommandContext,
+  title = `Remove workflow`,
 ): Promise<WorkflowPlan> => {
   const removeScope = await resolveRemoveScope(context, state);
 
@@ -228,12 +275,13 @@ const createRemovePlan = async (
     };
   }
 
-  const selectedManagedPaths = filterManagedPathsByScope(state.managedPaths, removeScope);
+  const managedPathsForRemoval = await getManagedPathsForRemoval(repository, state);
+  const selectedManagedPaths = filterManagedPathsByScope(managedPathsForRemoval, removeScope);
 
   return {
     command,
     mode: WorkflowMode.Remove,
-    title: `Remove workflow (${formatRemoveScope(removeScope)}).`,
+    title: title === 'Remove workflow' ? `Remove workflow (${formatRemoveScope(removeScope)}).` : title,
     plannedChanges:
       selectedManagedPaths.length > 0
         ? selectedManagedPaths.map((managedPath) => `Remove ${managedPath}.`)
@@ -246,6 +294,44 @@ const createRemovePlan = async (
     selectedAgentsForRemoval: context.selectedAgents,
     shouldRemoveAgentArtifacts: context.noAgentArtifacts !== true,
   };
+};
+
+const createCanceledPlan = (command: ProjectCommand, repository: RepositoryState, state: LotusState): WorkflowPlan => ({
+  command,
+  mode: WorkflowMode.Cancel,
+  title: 'Workflow canceled before applying changes.',
+  plannedChanges: ['No files will be changed.'],
+  resultMessage: 'No changes applied.',
+  state,
+  repository,
+});
+
+const getManagedPathsForRemoval = async (repository: RepositoryState, state: LotusState): Promise<string[]> => {
+  if (repository.root === null) {
+    return state.managedPaths;
+  }
+
+  const root = repository.root;
+  const invalidManagedPaths = new Set(state.invalidManagedPaths.map((invalidPath) => invalidPath.path));
+  const presentPaths = await Promise.all(
+    managedArtifacts.map(async (artifact) => {
+      if (invalidManagedPaths.has(artifact.path)) {
+        return null;
+      }
+
+      const stats = await lstat(join(root, artifact.path)).catch((error: unknown) => {
+        if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+          return null;
+        }
+
+        throw error;
+      });
+
+      return stats === null ? null : artifact.path;
+    }),
+  );
+
+  return presentPaths.filter((managedPath): managedPath is string => managedPath !== null);
 };
 
 const filterManagedPathsByScope = (managedPaths: string[], removeScope: RemoveScope): string[] => {

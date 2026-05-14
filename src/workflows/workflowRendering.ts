@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import { formatAgents, formatDetectedAgents } from '../agents';
 import { lotusManifest } from '../manifest';
 import type { CommandContext } from '../types';
+import { formatTaskSourceSelection } from '../workflowConfig';
 import { formatRemoveScope } from './workflowFormatting';
 import type { WorkflowPlan } from './workflowTypes';
 
@@ -36,6 +37,14 @@ export const renderPlanSummary = (plan: WorkflowPlan, context: CommandContext): 
         plan.configuration.detectedDocsArtifacts.length > 0 ? plan.configuration.detectedDocsArtifacts.join(', ') : 'none'
       }\n`,
     );
+    context.stdout(`- Selected profiles: ${plan.configuration.selectedProfiles.join(', ') || 'none'}\n`);
+    context.stdout(`- Prefilled profiles: ${plan.configuration.prefilledProfiles.join(', ') || 'none'}\n`);
+    context.stdout(
+      `- Task sources: ${
+        plan.configuration.taskSources.length > 0 ? plan.configuration.taskSources.map(formatTaskSourceSelection).join('; ') : 'none'
+      }\n`,
+    );
+    context.stdout('- Workflow config: .local/workflow.lotus.json\n');
     context.stdout(`- Detected agents: ${formatDetectedAgents(plan.configuration.agents.detections)}\n`);
     context.stdout(`- Selected agents: ${formatAgents(plan.configuration.agents.selectedAgents)}\n`);
   }

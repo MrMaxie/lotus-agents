@@ -1,8 +1,9 @@
 import type { AgentConfiguration } from '../agents';
-import type { LotusAgent, ManagedArtifact } from '../manifest';
+import type { LotusAgent, LotusProfile, ManagedArtifact } from '../manifest';
 import type { DocsMode, ProjectCommand } from '../projectCommands';
 import type { LotusState } from '../state';
 import type { RemoveScope, RepositoryState } from '../types';
+import type { TaskSourceSelection, WorkflowConfig } from '../workflowConfig';
 
 export enum WorkflowMode {
   FreshInstall = 'fresh-install',
@@ -19,6 +20,10 @@ export enum WorkflowMode {
 export type InstallationConfiguration = {
   docsMode: DocsMode;
   detectedDocsArtifacts: string[];
+  selectedProfiles: LotusProfile[];
+  prefilledProfiles: LotusProfile[];
+  taskSources: TaskSourceSelection[];
+  workflowConfig: WorkflowConfig;
   agents: AgentConfiguration;
 };
 

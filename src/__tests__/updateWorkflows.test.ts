@@ -2,9 +2,10 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ProjectCommand, projectCommandSchema } from '../commands';
-import { lotusArtifactContentVersion, managedArtifacts } from '../manifest';
+import { LotusProfile, lotusArtifactContentVersion, managedArtifacts } from '../manifest';
 import { runCli } from '../program';
 import { WorkflowAction } from '../types';
+import { workflowConfigSchema } from '../workflowConfig';
 import {
   cleanupTempDirectory,
   createFile,
@@ -13,6 +14,7 @@ import {
   createTempRepository,
   createWriters,
   expectPathExists,
+  expectPathMissing,
   readRepositoryFile,
 } from './helpers';
 
@@ -147,6 +149,67 @@ describe('CLI e2e: update and validation workflows', () => {
       expect(specTemplate).toContain('Project spec template');
       expect(issueNotes).toContain('Local issue notes');
       expect(exclude).toContain('.local/');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('force reinstall respects the installed workflow profile', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedProfiles: [LotusProfile.LinearFirst],
+        ...createWriters().context,
+      });
+      await createFile(cwd, '.local/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        forceReinstall: true,
+        ...writers.context,
+      });
+      const output = writers.stdout.join('');
+      const workflowConfig = workflowConfigSchema.parse(JSON.parse(await readRepositoryFile(cwd, '.local/workflow.lotus.json')));
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Forced reinstall workflow.');
+      expect(output).toContain('Reinstalled .local/AGENTS.md.');
+      expect(output).toContain('Reinstalled .docs/AGENTS.md.');
+      expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LinearFirst]);
+      await expectPathExists(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('removes all present managed artifacts when profiles are cleared', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedProfiles: [LotusProfile.LocalFirst],
+        ...createWriters().context,
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        selectedProfiles: [],
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(writers.stdout.join('')).toContain('No Lotus profiles were selected; removing profile artifacts.');
+      await expectPathMissing(cwd, '.local/AGENTS.md');
+      await expectPathMissing(cwd, '.local/workflow.lotus.json');
+      await expectPathMissing(cwd, '.docs/AGENTS.md');
+      await expectPathMissing(cwd, '.docs/spec');
     } finally {
       await cleanupTempDirectory(cwd);
     }

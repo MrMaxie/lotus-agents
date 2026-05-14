@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Lotus Agents",
     "shortDescription": "Install the Lotus Agents skill collection.",
-    "longDescription": "Bundle reusable Lotus Agents skills for structuring human-agent repository work.",
+    "longDescription": "Bundle local-first and Linear-first Lotus Agents skills for repository-scoped install, update, remove, doctor, validate, managed artifacts, and common-first agent entrypoints.",
     "developerName": "MrMaxie",
     "category": "Productivity",
     "capabilities": [
@@ -30,10 +30,10 @@
     ],
     "websiteURL": "https://github.com/MrMaxie/lotus-agents",
     "defaultPrompt": [
-      "Use Lotus Agents to initialize the repository workflow.",
-      "Bootstrap project specs for this repository.",
-      "Use the Linear-backed Lotus flow when Linear should hold operational state.",
-      "Prepare Lotus work artifacts for review or CI work, using remote context only when needed."
+      "Use Lotus Agents to install the repository workflow and keep artifacts local to this Git repo.",
+      "Run the Lotus update, doctor, or validate workflow and report managed artifact state.",
+      "Use the Linear-first Lotus flow when Linear should hold operational state.",
+      "Prepare Lotus work artifacts for review or CI work, using configured source priority and common-first agent entrypoints."
     ],
     "brandColor": "#1F7A6B"
   }

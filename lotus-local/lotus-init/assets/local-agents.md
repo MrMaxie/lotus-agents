@@ -35,15 +35,29 @@ selectedProcedures:
 - review notes: `.local/reviews/<revision-id>.md`
 - review answers: `.local/reviews/<revision-id>-answers.md`
 - PR notes: `.local/pr-notes/<id>.md`
+- workflow source config: `.local/workflow.lotus.json`
+- private workflow details: `.local/WORKFLOW.md`
+- private credentials or access notes: `.local/CREDENTIALS.md`
+- reproduction screenshots: `.local/screenshots/`
+- reproduction logs: `.local/logs/`
 
 `revision-id` uses `<issue-id>-r001`, `<issue-id>-r002`, and so on.
 
 ## Working Rules
 
 - `.local/` is private execution state
-- Lotus local files are the operational source of truth for current work
+- source-of-truth behavior is controlled by `.local/workflow.lotus.json`;
+  `local-first` uses Lotus local files for current work, while `linear-first`
+  uses Linear as the operational source and keeps `.local/` as private
+  configuration and execution notes
 - remote systems may provide supporting context, but they are not the canonical
   Lotus state
+- when `.local/workflow.lotus.json` exists, follow its selected profiles,
+  source priority, source-of-truth modes, write permissions, and hygiene
+  procedure
+- `.local/WORKFLOW.md` may contain local URLs, credentials notes, preferred
+  tools, and interactive source details; do not copy those values into public
+  docs, commits, comments, issues, or package output
 - shared IDs between local and remote artifacts do not make them the same
   object
 - do not synchronize local artifacts with remote state unless the human

@@ -6,12 +6,14 @@ import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 import { enumValues } from './enumValues';
 import {
+  type LotusProfile,
   lotusAgentSchema,
   lotusArtifactContentVersion,
   lotusArtifactSchemaVersion,
   lotusProfileSchema,
   type ManagedArtifact,
   ManagedArtifactKind,
+  ManagedArtifactType,
   managedArtifactKindSchema,
   managedArtifactScopeSchema,
   managedArtifacts,
@@ -20,6 +22,7 @@ import {
   managedPrivacySchema,
 } from './manifest';
 import type { RepositoryState } from './types';
+import { workflowConfigSchema } from './workflowConfig';
 
 export enum LotusStateStatus {
   Missing = 'missing',
@@ -75,6 +78,7 @@ export type LotusState = {
   reasonCode: LotusValidationReasonCode;
   message: string;
   hasManagedState: boolean;
+  selectedProfiles: LotusProfile[] | null;
   managedPaths: string[];
   invalidManagedPaths: ArtifactKindMismatch[];
   missingManagedPaths: string[];
@@ -106,7 +110,9 @@ export const detectLotusState = async (repository: RepositoryState): Promise<Lot
     return createMissingState([]);
   }
 
-  const artifactStates = await Promise.all(managedArtifacts.map((artifact) => validateManagedArtifact(root, artifact)));
+  const selectedProfiles = await readInstalledWorkflowProfiles(root);
+  const expectedArtifacts = getExpectedManagedArtifacts(selectedProfiles);
+  const artifactStates = await Promise.all(expectedArtifacts.map((artifact) => validateManagedArtifact(root, artifact)));
   const externalDiagnostics = await validateExternalConfiguration(root);
   const presentArtifacts = artifactStates.filter(
     (artifact) => artifact.status !== LotusStateStatus.Missing && artifact.kindMismatch === undefined,
@@ -123,6 +129,7 @@ export const detectLotusState = async (repository: RepositoryState): Promise<Lot
     invalidManagedPaths,
     managedPaths,
     missingManagedPaths,
+    selectedProfiles,
   });
 };
 
@@ -192,7 +199,13 @@ const validateManagedArtifact = async (root: string, artifact: ManagedArtifact):
       };
     }
 
-    return validateArtifactMetadata(artifact, metadataResult.metadata);
+    const artifactState = validateArtifactMetadata(artifact, metadataResult.metadata);
+
+    if (artifactState.status !== LotusStateStatus.Valid || artifact.metadata.artifactType !== ManagedArtifactType.ProjectWorkflowConfig) {
+      return artifactState;
+    }
+
+    return validateWorkflowConfigArtifact(absolutePath, artifactState);
   } catch (error) {
     if (isMissingPathError(error)) {
       return {
@@ -223,6 +236,10 @@ const readArtifactMetadata = async (absolutePath: string, artifact: ManagedArtif
 
   if (artifact.migration.strategy === 'directory-manifest') {
     return readDirectoryMetadata(absolutePath);
+  }
+
+  if (artifact.migration.strategy === 'json-manifest') {
+    return readJsonManifestMetadata(absolutePath);
   }
 
   return { status: MetadataReadStatus.NotRequired };
@@ -268,6 +285,87 @@ const readDirectoryMetadata = async (absolutePath: string): Promise<MetadataRead
     return {
       status: MetadataReadStatus.Invalid,
       message: `Invalid Lotus directory manifest ${directoryManifestFileName}: ${formatParserError(error)}.`,
+    };
+  }
+};
+
+const readJsonManifestMetadata = async (absolutePath: string): Promise<MetadataReadResult> => {
+  try {
+    const content = await readFile(absolutePath, 'utf8');
+    const parsed = JSON.parse(content) as unknown;
+
+    return {
+      status: MetadataReadStatus.Present,
+      metadata: unwrapDirectoryMetadata(parsed),
+    };
+  } catch (error) {
+    return {
+      status: MetadataReadStatus.Invalid,
+      message: `Invalid Lotus JSON manifest: ${formatParserError(error)}.`,
+    };
+  }
+};
+
+const readInstalledWorkflowProfiles = async (root: string): Promise<LotusProfile[] | null> => {
+  const workflowConfigPath = join(root, '.local', 'workflow.lotus.json');
+
+  try {
+    const content = await readFile(workflowConfigPath, 'utf8');
+    const parsed = JSON.parse(content) as unknown;
+    const selectedProfiles = z.object({ selectedProfiles: z.array(lotusProfileSchema) }).safeParse(parsed);
+
+    return selectedProfiles.success ? selectedProfiles.data.selectedProfiles : null;
+  } catch (error) {
+    if (isMissingPathError(error)) {
+      return null;
+    }
+
+    return null;
+  }
+};
+
+const getExpectedManagedArtifacts = (selectedProfiles: LotusProfile[] | null): ManagedArtifact[] => {
+  if (selectedProfiles === null || selectedProfiles.length === 0) {
+    return managedArtifacts;
+  }
+
+  const selectedProfileSet = new Set(selectedProfiles);
+
+  return managedArtifacts.filter((artifact) => artifact.metadata.selectedProfiles.some((profile) => selectedProfileSet.has(profile)));
+};
+
+const validateWorkflowConfigArtifact = async (absolutePath: string, artifactState: LotusArtifactState): Promise<LotusArtifactState> => {
+  try {
+    const content = await readFile(absolutePath, 'utf8');
+    const parsed = JSON.parse(content) as unknown;
+    const workflowConfig = workflowConfigSchema.safeParse(parsed);
+
+    if (workflowConfig.success) {
+      return artifactState;
+    }
+
+    return {
+      path: artifactState.path,
+      status: LotusStateStatus.DamagedLotusArtifact,
+      diagnostics: [
+        {
+          path: artifactState.path,
+          reasonCode: LotusValidationReasonCode.ArtifactMetadataInvalid,
+          message: `Invalid Lotus workflow config for ${artifactState.path}: ${z.prettifyError(workflowConfig.error)}.`,
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      path: artifactState.path,
+      status: LotusStateStatus.DamagedLotusArtifact,
+      diagnostics: [
+        {
+          path: artifactState.path,
+          reasonCode: LotusValidationReasonCode.ArtifactMetadataInvalid,
+          message: `Invalid Lotus workflow config for ${artifactState.path}: ${formatParserError(error)}.`,
+        },
+      ],
     };
   }
 };
@@ -357,6 +455,7 @@ const summarizeState = (input: {
   invalidManagedPaths: ArtifactKindMismatch[];
   managedPaths: string[];
   missingManagedPaths: string[];
+  selectedProfiles: LotusProfile[] | null;
 }): LotusState => {
   const { artifactStates, diagnostics, externalDiagnostics, invalidManagedPaths, managedPaths, missingManagedPaths } = input;
 
@@ -419,6 +518,7 @@ const summarizeState = (input: {
     reasonCode: LotusValidationReasonCode.ManagedArtifactsValid,
     message: 'All Lotus-managed artifacts are present and current.',
     hasManagedState: true,
+    selectedProfiles: input.selectedProfiles,
     managedPaths,
     invalidManagedPaths,
     missingManagedPaths,
@@ -437,6 +537,7 @@ const createState = (
     invalidManagedPaths: ArtifactKindMismatch[];
     managedPaths: string[];
     missingManagedPaths: string[];
+    selectedProfiles: LotusProfile[] | null;
   },
 ): LotusState => {
   return {
@@ -444,6 +545,7 @@ const createState = (
     reasonCode,
     message,
     hasManagedState: input.managedPaths.length > 0 || input.invalidManagedPaths.length > 0,
+    selectedProfiles: input.selectedProfiles,
     managedPaths: input.managedPaths,
     invalidManagedPaths: input.invalidManagedPaths,
     missingManagedPaths: input.missingManagedPaths,
@@ -458,6 +560,7 @@ const createMissingState = (diagnostics: LotusStateDiagnostic[]): LotusState => 
     reasonCode: LotusValidationReasonCode.ManagedArtifactsMissing,
     message: 'No Lotus-managed artifacts were found.',
     hasManagedState: false,
+    selectedProfiles: null,
     managedPaths: [],
     invalidManagedPaths: [],
     missingManagedPaths: managedArtifacts.map((artifact) => artifact.path),

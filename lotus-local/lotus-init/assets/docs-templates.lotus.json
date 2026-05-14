@@ -7,7 +7,7 @@
     "contentVersion": "1.0.0",
     "privacy": "project",
     "contentClass": "user-editable",
-    "selectedProfiles": ["local-first"],
+    "selectedProfiles": ["local-first", "linear-first"],
     "selectedAgents": [],
     "selectedProcedures": ["task-intake", "pr-intake", "meeting-promotion", "spec-bootstrap"]
   }

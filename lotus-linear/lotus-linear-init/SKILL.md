@@ -9,7 +9,8 @@ Use this skill when a repository needs the Linear-backed Lotus rules.
 
 ## Inspect First
 
-1. check whether `.local/AGENTS.md` already exists
+1. check whether `.local/AGENTS.md`, `.local/WORKFLOW.md`, and
+   `.local/workflow.lotus.json` already exist
 2. inspect current ignore rules for `.local/`
 3. read root `AGENTS.md` when present for host repo constraints, but do not
    edit it unless the human explicitly asks
@@ -23,14 +24,20 @@ Use this skill when a repository needs the Linear-backed Lotus rules.
 - ensure `.local/` is ignored via `.git/info/exclude`, `.gitignore`, or another
   repo-local ignore surface
 - do not create Linear issues, Linear documents, or external tickets during init
-- do not create local operational or project-document directories; active issue,
-  progress, review, PR-note, and durable project state belongs in Linear for
-  this variant
+- keep active issue, progress, review, PR-note, and durable project state in
+  Linear for this variant
+- keep `.docs/AGENTS.md` and reusable `.docs` templates available as durable
+  agent guidance; they are not the operational Linear work state
+- local Lotus directories may exist only as private execution notes or
+  compatibility stores; they are not the operational source when
+  `.local/workflow.lotus.json` selects `linear-first`
 
 ## Required Local Configuration
 
-Ensure `.local/AGENTS.md` defines these keys, even when the value is still a
-placeholder:
+Prefer `.local/workflow.lotus.json` for selected profiles, source priority,
+source-of-truth modes, write permissions, and hygiene. Keep private
+project-specific details in `.local/WORKFLOW.md` or `.local/AGENTS.md`, even
+when the value is still a placeholder:
 
 ```yaml
 linear_team: <team-key-or-name>

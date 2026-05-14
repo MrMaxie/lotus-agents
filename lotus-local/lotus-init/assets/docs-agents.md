@@ -8,6 +8,7 @@ privacy: project
 contentClass: user-editable
 selectedProfiles:
   - local-first
+  - linear-first
 selectedAgents: []
 selectedProcedures:
   - task-intake
@@ -35,6 +36,10 @@ selectedProcedures:
 
 - prefer durable project truth in `.docs/spec/` or `.docs/practices/`, not in
   `.local/`
+- use `.local/workflow.lotus.json` to understand selected profiles, source
+  priority, task-source modes, write permissions, and hygiene actions
+- if `.local/WORKFLOW.md` names private credentials, local URLs, preferred
+  tools, or interactive sources, use it only as private execution context
 - when entering `.docs/spec/` or `.docs/practices/`, read `_toc.md` first when
   present, then follow the linked leaf files that matter
 - prefer small named docs with explicit titles and tight scope when a topic

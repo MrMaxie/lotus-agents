@@ -12,10 +12,17 @@ describe('CLI e2e: bundled assets', () => {
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-issues-notes.lotus.json', '.local/issues-notes/.lotus.json');
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-reviews.lotus.json', '.local/reviews/.lotus.json');
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-pr-notes.lotus.json', '.local/pr-notes/.lotus.json');
+      await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/local-workflow.md', '.local/WORKFLOW.md');
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/docs-agents.md', '.docs/AGENTS.md');
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/docs-spec.lotus.json', '.docs/spec/.lotus.json');
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/meetings-draft-template.md', '.docs/meetings/_draft.md');
       await copyRepositoryFile(cwd, 'lotus-local/lotus-init/assets/docs-templates.lotus.json', '.docs/templates/.lotus.json');
+
+      const installWriters = createWriters();
+      await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        ...installWriters.context,
+      });
 
       const writers = createWriters();
       const result = await runCli(['node', 'lotusagents', 'validate'], {

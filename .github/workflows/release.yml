@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    environment: npm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.8
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting and lint rules
+        run: bun run check
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify package contents
+        run: |
+          npm pack --dry-run --ignore-scripts --json > pack-dry-run.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const [pack] = JSON.parse(fs.readFileSync('pack-dry-run.json', 'utf8'));
+          const files = pack.files.map((file) => file.path);
+          const forbidden = [/^\.local\//, /^src\//, /^coverage\//, /^fixtures\//, /^\.tmp\//, /\.tgz$/];
+          const matches = files.filter((file) => forbidden.some((pattern) => pattern.test(file)));
+
+          if (matches.length > 0) {
+            console.error(`Forbidden files in package:\n${matches.join('\n')}`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Smoke test packed CLI
+        run: |
+          tarball="$(npm pack --ignore-scripts --json | node -e "let input=''; process.stdin.on('data', (chunk) => input += chunk); process.stdin.on('end', () => console.log(JSON.parse(input)[0].filename));")"
+          mkdir package-smoke
+          cd package-smoke
+          git init
+          npm init -y
+          npm install "../${tarball}"
+          npx lotusagents --help
+          npx lotus-agents --help
+          npx lotusagents doctor
+          npx lotusagents install --profile local-first --task-source linear-issues-connector --source-mode linear-issues-connector=operational --agent codex
+          npx lotusagents validate
+
+      - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public

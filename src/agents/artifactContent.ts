@@ -53,8 +53,9 @@ const renderSharedSemanticsBody = () =>
     'Read order:',
     '1. Explicit human instruction in the current session.',
     '2. `.local/AGENTS.md` when present for private project and workflow state.',
-    '3. `.docs/AGENTS.md` when present for durable project guidance.',
-    '4. Relevant files under `.docs/spec/`, `.docs/practices/`, and `.docs/templates/` when those folders exist.',
+    '3. `.local/workflow.lotus.json` and `.local/WORKFLOW.md` when present for selected profiles, source priority, tool preferences, and private local access notes.',
+    '4. `.docs/AGENTS.md` when present for durable project guidance.',
+    '5. Relevant files under `.docs/spec/`, `.docs/practices/`, and `.docs/templates/` when those folders exist.',
     '',
     'Keep agent-specific behavior limited to this entrypoint. The durable Lotus rules live in the shared files above.',
   ].join('\n');

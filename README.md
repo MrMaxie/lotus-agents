@@ -17,27 +17,27 @@ from durable project guidance:
 Run the executable CLI without installing it first:
 
 ```bash
-npx @maxiedev/lotusagents --help
+npx @maxiedev/lotusagents install
 ```
 
 With Bun:
 
 ```bash
-bunx @maxiedev/lotusagents --help
+bunx @maxiedev/lotusagents install
 ```
 
 Install it globally when you want a persistent command:
 
 ```bash
 npm install --global @maxiedev/lotusagents
-lotusagents --help
+lotusagents install
 ```
 
 Or install it with Bun:
 
 ```bash
 bun add --global @maxiedev/lotusagents
-lotus-agents --help
+lotus-agents update
 ```
 
 Install the main routing skill:
@@ -64,9 +64,11 @@ The repository also exposes a native plugin manifest in
 `.codex-plugin/plugin.json` if you prefer to install both skill collections
 through Codex.
 
-The CLI exposes both `lotusagents` and `lotus-agents` binaries. It
-orchestrates `install`, `update`, `remove`, `doctor`, and `validate` commands
-inside a Git repository. `install` starts a fresh install when no
+The CLI exposes both `lotusagents` and `lotus-agents` binaries. It always
+writes project artifacts into the current Git repository, even when the CLI was
+launched through `npx`, `bunx`, or a global install. It orchestrates `install`,
+`update`, `remove`, `doctor`, and `validate` commands inside a Git repository.
+`install` starts a fresh install when no
 Lotus-managed state is present, creates the base `.local/` and `.docs/`
 managed artifacts, and routes to update when existing state is detected.
 `update` offers the safe actions Update, Remove, and Cancel, filling in missing
@@ -81,6 +83,53 @@ machine-readable metadata for scope, artifact type, schema version, content
 version, privacy, selected profiles, selected agents, selected procedures,
 content class, and migration strategy.
 
+Useful command forms:
+
+```bash
+lotusagents install
+lotusagents update
+lotusagents update --force
+lotusagents remove
+lotusagents doctor
+lotusagents validate
+lotusagents install --profile linear-first --task-source linear-issues-connector --source-mode linear-issues-connector=operational
+lotusagents install --task-source github-issues-connector --write-source github-issues-connector
+```
+
+`doctor` reports state and repair guidance. `validate` checks known managed
+artifacts without changing files. `install --force` and `update --force`
+replace known Lotus-managed files from bundled templates only when a forced
+repair path is requested, scoped to the installed workflow profile when
+`.local/workflow.lotus.json` can be read. Global package state is never removed
+by `remove`.
+
+Workflow profiles are selected independently:
+
+- `local-first` is the default. `.local/` holds private operational notes and
+  `.docs/` holds durable project guidance.
+- `linear-first` keeps private project configuration in `.local/` while Linear
+  is the operational source for issues, progress, and durable flow documents.
+  `.docs/` still holds base durable agent guidance and reusable project
+  templates.
+  Local issue, review, and PR-note stores may still be installed as private
+  execution notes or compatibility stores; they are not canonical state in this
+  profile.
+- selecting both profiles keeps local notes available while also documenting
+  Linear as a configured source.
+- selecting no profile is treated as a request to remove Lotus profile
+  artifacts; use `--no-profiles` for this non-interactive path.
+
+Task sources and source-of-truth modes are stored in
+`.local/workflow.lotus.json`. Supported remote or interactive sources include
+Jira through Rovo, GitHub issues through `gh`, GitHub issues through connector,
+Linear issues through connector, GitHub PR comments through `gh`, GitHub PR
+reviews through connector, Azure PR reviews through `az devops`, and Figma.
+Every selected remote source defaults to readonly source of truth unless it is
+configured as read/write or operational. `--write-source <source>` sets a
+selected remote source to read/write by default unless `--source-mode` provides a
+more specific mode. Local notes, local follow-ups, local reviews, and local
+findings remain valid private sources regardless of selected remote tools.
+
 Agent entrypoint generation supports Codex, OpenCode, Claude, and Cursor:
 
 - `--recommended-agents` selects all detected agents
@@ -91,7 +140,32 @@ Agent entrypoint generation supports Codex, OpenCode, Claude, and Cursor:
 - Cursor uses `.cursor/rules/lotus.mdc`
 
 Generated files point back to `.local/AGENTS.md` and `.docs/AGENTS.md`.
-Existing non-Lotus files are reported and left untouched.
+Existing non-Lotus files are reported and left untouched. Codex and OpenCode
+share one common `AGENTS.md` entrypoint with aggregated `selectedAgents`
+metadata; Claude and Cursor get their own entrypoints. Generated entrypoints
+reference shared Lotus semantics instead of duplicating project workflow rules.
+
+Managed local artifacts:
+
+- `.local/AGENTS.md` uses frontmatter metadata and is private user-editable
+  guidance.
+- `.local/WORKFLOW.md` uses frontmatter metadata and is private user-editable
+  workflow detail storage for local URLs, access notes, preferred tools, and
+  interactive source notes.
+- `.local/workflow.lotus.json` is the generated semantic workflow config.
+- `.local/issues`, `.local/issues-notes`, `.local/reviews`, and
+  `.local/pr-notes` use `.lotus.json` directory metadata.
+
+Managed durable artifacts:
+
+- `.docs/AGENTS.md` uses frontmatter metadata for project guidance.
+- `.docs/spec` and `.docs/templates` use `.lotus.json` directory metadata.
+- `.docs/meetings/_draft.md` is generated meeting draft content.
+
+Manual edits are safe in `user-editable` artifacts as long as Lotus metadata is
+kept intact. Do not remove or corrupt frontmatter metadata or `.lotus.json`.
+`schemaVersion` describes the metadata shape; `contentVersion` tracks the
+Lotus package version that produced the artifact.
 
 ## Local Development
 
@@ -114,6 +188,19 @@ run through Bun locally while NPM lifecycle behavior remains available for
 release validation through commands such as `npm pack` or `npm publish --dry-run`.
 `prepack` intentionally stays NPM-based because the package is published to NPM
 and should keep validating that path.
+
+## Release
+
+Version the package in `package.json` and `.codex-plugin/plugin.json` before a
+release. Run the local verification commands above, then use the GitHub Actions
+Release workflow. The workflow installs with Bun, runs check/typecheck/tests,
+builds, verifies package contents, smoke-tests a packed CLI in a temporary Git
+repository, and publishes `@maxiedev/lotusagents` with provenance.
+
+Publishing uses trusted publishing when the NPM package is configured for the
+GitHub environment. If trusted publishing is not configured, set `NPM_TOKEN` in
+the `npm` environment secrets. The package whitelist excludes `.local`, source
+tests, coverage, fixtures, temporary files, and private development artifacts.
 
 ## Update All Skills
 
@@ -155,6 +242,9 @@ repo/
 `.local/` is the private working layer. It should usually be ignored by Git.
 For Lotus workflow state, local artifacts are the operational source of truth;
 external providers are optional reference surfaces.
+`.local/` stays repository-local and private even when the CLI itself is global.
+Do not put durable project truth in `.local/`; use committed `.docs` or Linear
+when another machine or agent must reproduce the work.
 
 `.docs/` is the project layer. Keep specs, meeting notes, and reusable patterns
 there. You can commit it or keep it local-only, depending on how you want to
@@ -187,6 +277,13 @@ private configuration such as `linear_team`, `linear_project`,
 `external_writes: disallowed-by-default`. External systems such as Jira and
 GitHub are read-only by default and are linked or cloned into Linear when the
 project policy requires it.
+
+Operational hygiene is configured through the `workflow-hygiene` procedure in
+`.local/workflow.lotus.json`. After work, agents should record material
+progress in the configured operational source, keep private reproduction data
+under `.local`, avoid writing to readonly remote sources without approval, and
+remove scratch files, logs, traces, and tool sessions that are not part of the
+requested change.
 
 ## Installable Skills
 
@@ -326,16 +423,22 @@ should hold operational state, install `lotus-linear-agents`.
 If you do not want to install the skills, you can adopt Lotus manually:
 
 1. copy `lotus-local/lotus-init/assets/local-agents.md` to `.local/AGENTS.md`
-2. copy `lotus-local/lotus-init/assets/docs-agents.md` to `.docs/AGENTS.md`
-3. create these directories:
+2. copy `lotus-local/lotus-init/assets/local-workflow.md` to `.local/WORKFLOW.md`
+3. create `.local/workflow.lotus.json` through the CLI when possible so it is
+   prefilled from selected profiles and task sources
+4. copy `lotus-local/lotus-init/assets/docs-agents.md` to `.docs/AGENTS.md`
+5. create these directories:
    - `.local/issues/`
    - `.local/issues-notes/`
    - `.local/reviews/`
    - `.local/pr-notes/`
+   - `.local/screenshots/`
+   - `.local/logs/`
    - `.docs/spec/`
    - `.docs/meetings/`
    - `.docs/templates/`
-4. copy the directory metadata manifests:
+   - `.docs/practices/` when the project has durable engineering practices
+6. copy the directory metadata manifests:
    - `lotus-local/lotus-init/assets/local-issues.lotus.json` to
      `.local/issues/.lotus.json`
    - `lotus-local/lotus-init/assets/local-issues-notes.lotus.json` to
@@ -348,13 +451,13 @@ If you do not want to install the skills, you can adopt Lotus manually:
      `.docs/spec/.lotus.json`
    - `lotus-local/lotus-init/assets/docs-templates.lotus.json` to
      `.docs/templates/.lotus.json`
-5. create `.docs/meetings/_draft.md` from
+7. create `.docs/meetings/_draft.md` from
    `lotus-local/lotus-init/assets/meetings-draft-template.md`
-6. add `.local/` to `.git/info/exclude` or `.gitignore`
-7. decide whether `.docs/` should be committed or local-only; when in doubt,
+8. add `.local/` to `.git/info/exclude` or `.gitignore`
+9. decide whether `.docs/` should be committed or local-only; when in doubt,
    prefer local-only for mature repos and committed for greenfield or
    bootstrap-only repos
-8. optionally create agent entrypoint files that point agents to
+10. optionally create agent entrypoint files that point agents to
    `.local/AGENTS.md` and `.docs/AGENTS.md`; Codex and OpenCode use
    `AGENTS.md`, Claude uses `CLAUDE.md`, and Cursor uses
    `.cursor/rules/lotus.mdc`. The CLI can generate these automatically, and

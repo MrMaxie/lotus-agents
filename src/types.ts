@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { enumValues } from './enumValues';
-import type { LotusAgent } from './manifest';
+import type { LotusAgent, LotusProfile } from './manifest';
+import type { SourceOfTruthMode, TaskSource } from './workflowConfig';
 
 export type OutputWriter = (message: string) => void;
 
@@ -30,6 +31,10 @@ export type CommandContext = {
   selectedAgents?: LotusAgent[];
   selectRecommendedAgents?: boolean;
   noAgentArtifacts?: boolean;
+  selectedProfiles?: LotusProfile[];
+  selectedTaskSources?: TaskSource[];
+  taskSourceModes?: Partial<Record<TaskSource, SourceOfTruthMode>>;
+  writeEnabledTaskSources?: TaskSource[];
 };
 
 export type CliResult = {

@@ -46,7 +46,7 @@ export type AgentMetadataReadResult =
   | { status: AgentMetadataReadStatus.Managed; metadata: AgentArtifactMetadata }
   | { status: AgentMetadataReadStatus.Unmanaged };
 
-export const sharedSemantics = ['.local/AGENTS.md', '.docs/AGENTS.md'];
+export const sharedSemantics = ['.local/AGENTS.md', '.local/workflow.lotus.json', '.local/WORKFLOW.md', '.docs/AGENTS.md'];
 
 export const createAgentArtifactMetadataSchema = (lotusAgentSchema: z.ZodType<LotusAgent>) =>
   z.object({

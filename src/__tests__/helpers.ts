@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
 import { expect } from 'vitest';
-import { type ManagedArtifact, managedArtifacts } from '../manifest';
+import { type ManagedArtifact, ManagedArtifactType, managedArtifacts } from '../manifest';
+import { createWorkflowConfig, normalizeTaskSources, renderWorkflowConfig } from '../workflowConfig';
 
 export const createWriters = () => {
   const stdout: string[] = [];
@@ -64,6 +65,26 @@ export const createManagedArtifact = async (
   if (artifact.kind === 'directory') {
     await createDirectory(cwd, artifact.path);
     await writeFile(join(cwd, artifact.path, '.lotus.json'), `${JSON.stringify({ metadata }, null, 2)}\n`);
+    return;
+  }
+
+  if (artifact.migration.strategy === 'json-manifest') {
+    if (artifact.metadata.artifactType === ManagedArtifactType.ProjectWorkflowConfig) {
+      await createFile(
+        cwd,
+        artifact.path,
+        renderWorkflowConfig(
+          createWorkflowConfig({
+            metadata: metadata as ManagedArtifact['metadata'],
+            selectedProfiles: metadata.selectedProfiles as ManagedArtifact['metadata']['selectedProfiles'],
+            taskSources: normalizeTaskSources([], {}, []),
+          }),
+        ),
+      );
+      return;
+    }
+
+    await createFile(cwd, artifact.path, `${JSON.stringify({ metadata }, null, 2)}\n`);
     return;
   }
 
