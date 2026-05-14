@@ -177,7 +177,13 @@ bun run check
 bun run typecheck
 bun run test
 bun run build
+bun run clean
 ```
+
+Use `bun run clean` after local package verification when generated artifacts
+such as `dist/`, `package-smoke/`, `pack-dry-run.json`, or root package tarballs
+should be removed. The command intentionally leaves `node_modules/`, `.docs/`,
+coverage output, nested tarballs, and private `.local/` state intact.
 
 `bun.lock` is the repository lockfile. `package-lock.json` is intentionally not
 kept because npm does not require it for packing or publishing the package, and
@@ -246,6 +252,11 @@ external providers are optional reference surfaces.
 `.local/` stays repository-local and private even when the CLI itself is global.
 Do not put durable project truth in `.local/`; use committed `.docs` or Linear
 when another machine or agent must reproduce the work.
+
+This repository does not keep root `.local/examples` fixtures. Treat that path
+as disposable local state and remove it during cleanup unless a human explicitly
+asks to preserve a specific local example. Never use live session state, auth
+files, logs, databases, plugin caches, or sandbox files as examples.
 
 `.docs/` is the project layer. Keep specs, meeting notes, and reusable patterns
 there. You can commit it or keep it local-only, depending on how you want to

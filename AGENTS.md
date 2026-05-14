@@ -16,7 +16,9 @@ The current product shape is:
 
 Do not treat this repo as a consumer repository by default.
 
-- root `.local/` may contain local examples, not the product contract
+- root `.local/` is disposable private state, not the product contract
+- do not keep `.local/examples` fixtures in this repository; remove them during
+  cleanup unless a human explicitly asks to preserve a specific local example
 - root `.docs/` may not exist
 - do not bootstrap consumer `.local/` or `.docs/` in this repo unless a human
   explicitly asks
@@ -37,6 +39,8 @@ When changing the contract or adoption story:
 6. keep skills optional, task-focused, and copy-paste friendly
 7. keep reusable templates in the relevant skill assets or in consumer
    `.docs/templates/`, not in one legacy copy artifact
+8. never use live `.local/` session state, auth files, logs, databases, plugin
+   caches, or sandbox files as examples
 
 ## Code Style
 
@@ -64,6 +68,9 @@ When changing the contract or adoption story:
   the repository lockfile.
 - Run Biome through the package scripts when editing JavaScript, TypeScript,
   JSON, or JSONC files.
+- After local package verification, use `bun run clean` to remove generated
+  package artifacts. Do not use it as a dependency reset, and do not remove
+  `node_modules/` or private `.local/` state unless a human explicitly asks.
 
 ## Write For The Actual Reader
 

@@ -27,6 +27,7 @@
   "scripts": {
     "build": "tsup",
     "check": "biome check .",
+    "clean": "bun src/cleanPackageArtifacts.ts",
     "format": "biome check --write .",
     "lint": "biome lint .",
     "prepack": "npm run build",

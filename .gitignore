@@ -2,4 +2,6 @@ node_modules/
 dist/
 coverage/
 .tmp/
+package-smoke/
+pack-dry-run.json
 *.tgz
