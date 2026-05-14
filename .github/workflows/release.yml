@@ -76,4 +76,9 @@ jobs:
       - name: Publish package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            unset NODE_AUTH_TOKEN
+          fi
+
+          npm publish --provenance --access public
