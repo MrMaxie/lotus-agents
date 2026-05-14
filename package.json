@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "bun@1.3.8",
   "bin": {
-    "lotusagents": "./dist/cli.js",
-    "lotus-agents": "./dist/cli.js"
+    "lotusagents": "dist/cli.js",
+    "lotus-agents": "dist/cli.js"
   },
   "exports": {
     ".": {
