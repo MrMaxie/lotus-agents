@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Lotus Agents",
     "shortDescription": "Install the Lotus Agents skill collection.",
-    "longDescription": "Bundle local-first and Linear-first Lotus Agents skills for repository-scoped install, update, remove, doctor, validate, managed artifacts, and common-first agent entrypoints.",
+    "longDescription": "Bundle local-first and Linear-first Lotus Agents skills for repository-scoped install, update, remove, doctor, validate, managed artifacts, and shared agent entrypoints.",
     "developerName": "MrMaxie",
     "category": "Productivity",
     "capabilities": [
@@ -33,7 +33,7 @@
       "Use Lotus Agents to install the repository workflow and keep artifacts local to this Git repo.",
       "Run the Lotus update, doctor, or validate workflow and report managed artifact state.",
       "Use the Linear-first Lotus flow when Linear should hold operational state.",
-      "Prepare Lotus work artifacts for review or CI work, using configured source priority and common-first agent entrypoints."
+      "Prepare Lotus work artifacts for review or CI work, using configured source priority and shared agent entrypoints."
     ],
     "brandColor": "#1F7A6B"
   }

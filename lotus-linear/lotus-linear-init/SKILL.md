@@ -21,8 +21,7 @@ Use this skill when a repository needs the Linear-backed Lotus rules.
 - create `.local/AGENTS.md` from `assets/local-agents.md` when missing
 - when the file already exists, merge only the missing Linear-backed rules
   and preserve repo-specific constraints
-- ensure `.local/` is ignored via `.git/info/exclude`, `.gitignore`, or another
-  repo-local ignore surface
+- ensure `.local/` is ignored via `.git/info/exclude`
 - do not create Linear issues, Linear documents, or external tickets during init
 - keep active issue, progress, review, PR-note, and durable project state in
   Linear for this variant

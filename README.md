@@ -37,7 +37,7 @@ Or install it with Bun:
 
 ```bash
 bun add --global @maxiedev/lotusagents
-lotus-agents update
+lotusagents install
 ```
 
 Install the main routing skill:
@@ -239,7 +239,8 @@ repo/
       _toc.md    # when the branch has linked subfiles
 ```
 
-`.local/` is the private working layer. It should usually be ignored by Git.
+`.local/` is the private working layer. Add it to `.git/info/exclude` so
+machine-local notes, credentials hints, logs, and screenshots stay out of Git.
 For Lotus workflow state, local artifacts are the operational source of truth;
 external providers are optional reference surfaces.
 `.local/` stays repository-local and private even when the CLI itself is global.
@@ -427,13 +428,11 @@ If you do not want to install the skills, you can adopt Lotus manually:
 3. create `.local/workflow.lotus.json` through the CLI when possible so it is
    prefilled from selected profiles and task sources
 4. copy `lotus-local/lotus-init/assets/docs-agents.md` to `.docs/AGENTS.md`
-5. create these directories:
+5. create these base directories:
    - `.local/issues/`
    - `.local/issues-notes/`
    - `.local/reviews/`
    - `.local/pr-notes/`
-   - `.local/screenshots/`
-   - `.local/logs/`
    - `.docs/spec/`
    - `.docs/meetings/`
    - `.docs/templates/`
@@ -453,11 +452,13 @@ If you do not want to install the skills, you can adopt Lotus manually:
      `.docs/templates/.lotus.json`
 7. create `.docs/meetings/_draft.md` from
    `lotus-local/lotus-init/assets/meetings-draft-template.md`
-8. add `.local/` to `.git/info/exclude` or `.gitignore`
+8. add `.local/` to `.git/info/exclude`
 9. decide whether `.docs/` should be committed or local-only; when in doubt,
    prefer local-only for mature repos and committed for greenfield or
    bootstrap-only repos
-10. optionally create agent entrypoint files that point agents to
+10. optionally create `.local/screenshots/` and `.local/logs/` when you need
+   private reproduction evidence for a task
+11. optionally create agent entrypoint files that point agents to
    `.local/AGENTS.md` and `.docs/AGENTS.md`; Codex and OpenCode use
    `AGENTS.md`, Claude uses `CLAUDE.md`, and Cursor uses
    `.cursor/rules/lotus.mdc`. The CLI can generate these automatically, and
@@ -468,7 +469,7 @@ For the Linear-backed variant:
 1. copy `lotus-linear/lotus-linear-init/assets/local-agents.md` to `.local/AGENTS.md`
 2. fill in `linear_team`, `linear_project`, `linear_flow_document`,
    `source_policy`, and `external_writes`
-3. add `.local/` to `.git/info/exclude` or `.gitignore`
+3. add `.local/` to `.git/info/exclude`
 4. keep issue status, progress notes, review clones, PR-note proposals, and
    durable project context in Linear
 

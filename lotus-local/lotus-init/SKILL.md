@@ -59,8 +59,7 @@ Use this skill when a repository needs the base Lotus setup.
 
 ## Ignore Rules
 
-- ensure `.local/` is ignored via `.git/info/exclude`, `.gitignore`, or another
-  repo-local ignore surface
+- ensure `.local/` is ignored via `.git/info/exclude`
 - if the user has already said whether `.docs/` should stay committed or
   local-only, follow that
 - if the repo already has meaningful code and the agent can ask a short
@@ -68,7 +67,7 @@ Use this skill when a repository needs the base Lotus setup.
 - if the repo already has meaningful code and the agent cannot ask or should
   not block on the question, default to hidden `.docs/`:
   - keep `.docs/` local-only
-  - ensure `.docs/` is ignored
+  - ensure `.docs/` is ignored via `.git/info/exclude`
   - mention that the human can ask to unhide or commit `.docs/` later
 - if the repo is still early, mostly bootstrap, example-heavy, or almost
   empty, default to committed `.docs/`:
