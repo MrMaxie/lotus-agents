@@ -1,6 +1,6 @@
 {
   "name": "lotus-agents",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Bundle the Lotus Agents as a reusable Codex skill collection.",
   "author": {
     "name": "MrMaxie",
@@ -32,7 +32,8 @@
     "defaultPrompt": [
       "Use Lotus Agents to initialize the repository workflow.",
       "Bootstrap project specs for this repository.",
-      "Prepare Lotus files for review or CI work, using remote context only when needed."
+      "Use the Linear-backed Lotus flow when Linear should hold operational state.",
+      "Prepare Lotus work artifacts for review or CI work, using remote context only when needed."
     ],
     "brandColor": "#1F7A6B"
   }

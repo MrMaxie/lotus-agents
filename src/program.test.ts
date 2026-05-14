@@ -28,6 +28,6 @@ describe('program', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(writers.stdout.join('')).toMatch(/^0\.1\.0/);
+    expect(writers.stdout.join('')).toMatch(/^1\.0\.0/);
   });
 });

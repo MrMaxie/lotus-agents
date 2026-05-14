@@ -2,19 +2,31 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ProjectCommand, projectCommandSchema } from '../commands';
-import { lotusArtifactContentVersion } from '../manifest';
+import { lotusArtifactContentVersion, managedArtifacts } from '../manifest';
 import { runCli } from '../program';
 import { WorkflowAction } from '../types';
 import {
   cleanupTempDirectory,
   createFile,
+  createManagedArtifact,
   createManagedArtifacts,
   createTempRepository,
   createWriters,
+  expectPathExists,
   readRepositoryFile,
 } from './helpers';
 
 describe('CLI e2e: update and validation workflows', () => {
+  const managedArtifact = (path: string) => {
+    const artifact = managedArtifacts.find((candidate) => candidate.path === path);
+
+    if (artifact === undefined) {
+      throw new Error(`Missing managed artifact fixture for ${path}.`);
+    }
+
+    return artifact;
+  };
+
   it('reports outdated Lotus metadata versions', async ({ task }) => {
     const cwd = await createTempRepository(task.id);
 
@@ -70,6 +82,33 @@ describe('CLI e2e: update and validation workflows', () => {
     }
   });
 
+  it('routes damaged directory manifests to repair guidance without reinstalling by default', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createManagedArtifacts(cwd);
+      await rm(join(cwd, '.docs/spec/.lotus.json'), { recursive: true, force: true });
+      await createFile(cwd, '.docs/spec/.lotus.json/nested.md', '# Wrong metadata shape\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Repair workflow required for damaged Lotus-managed artifacts.');
+      expect(output).toContain('.docs/spec');
+      expect(output).toContain('lotusagents update --force');
+      expect(output).not.toContain('Reinstalled .docs/spec.');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
   it('force reinstalls known Lotus artifacts from bundled templates', async ({ task }) => {
     const cwd = await createTempRepository(task.id);
 
@@ -96,6 +135,7 @@ describe('CLI e2e: update and validation workflows', () => {
       const specIndex = await readRepositoryFile(cwd, '.docs/spec/_toc.md');
       const specTemplate = await readRepositoryFile(cwd, '.docs/templates/spec.md');
       const issueNotes = await readRepositoryFile(cwd, '.local/issues/MAX-1.md');
+      const exclude = await readRepositoryFile(cwd, '.git/info/exclude');
 
       expect(result.exitCode).toBe(0);
       expect(output).toContain('Forced reinstall workflow.');
@@ -106,6 +146,7 @@ describe('CLI e2e: update and validation workflows', () => {
       expect(specIndex).toContain('Keep this project state.');
       expect(specTemplate).toContain('Project spec template');
       expect(issueNotes).toContain('Local issue notes');
+      expect(exclude).toContain('.local/');
     } finally {
       await cleanupTempDirectory(cwd);
     }
@@ -258,6 +299,37 @@ describe('CLI e2e: update and validation workflows', () => {
       expect(output).toContain('Installation configuration:');
       expect(output).toContain('.docs mode: committed');
       expect(output).toContain('Prefilled from detected .docs artifacts: .docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('installs missing managed artifacts during update without replacing present artifacts', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createManagedArtifact(cwd, managedArtifact('.docs/AGENTS.md'));
+
+      const existingDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const currentDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const exclude = await readRepositoryFile(cwd, '.git/info/exclude');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Installed .local/AGENTS.md.');
+      expect(output).toContain('Installed .docs/spec.');
+      expect(currentDocsAgents).toBe(existingDocsAgents);
+      expect(exclude).toContain('.local/');
+      expect(exclude).not.toContain('.docs/');
+      await expectPathExists(cwd, '.local/issues/.lotus.json');
+      await expectPathExists(cwd, '.docs/spec/.lotus.json');
     } finally {
       await cleanupTempDirectory(cwd);
     }

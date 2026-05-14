@@ -3,7 +3,7 @@ lotus: managed-artifact
 scope: docs
 artifactType: docs-guidance
 schemaVersion: 1
-contentVersion: "0.1.0"
+contentVersion: "1.0.0"
 privacy: project
 contentClass: user-editable
 selectedProfiles:

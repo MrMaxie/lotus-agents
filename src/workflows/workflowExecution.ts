@@ -1,9 +1,11 @@
-import { copyFile, lstat, mkdir, rm } from 'node:fs/promises';
-import { basename, dirname, join } from 'node:path';
+import { copyFile, lstat, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execa } from 'execa';
 import { Listr } from 'listr2';
 import { removeAgentArtifacts, writeSelectedAgentArtifacts } from '../agents';
-import type { ManagedArtifact } from '../manifest';
+import { type ManagedArtifact, managedArtifacts } from '../manifest';
+import { DocsMode } from '../projectCommands';
 import { WorkflowMode, type WorkflowPlan } from './workflowTypes';
 
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
@@ -39,11 +41,17 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
               appliedChanges.push(`Reinstalled ${artifact.path}.`);
             }
 
+            appliedChanges.push(...(await ensureGitInfoExclude(plan.repository.root, ['.local/'])));
             return;
           }
 
           if (plan.mode !== WorkflowMode.Remove) {
             if (plan.repository.root !== null && plan.configuration !== undefined) {
+              for (const artifact of getManagedArtifactsToInstall(plan)) {
+                appliedChanges.push(await installManagedArtifact(plan.repository.root, artifact));
+              }
+
+              appliedChanges.push(...(await ensureGitInfoExclude(plan.repository.root, getRequiredExcludePatterns(plan))));
               appliedChanges.push(
                 ...(await writeSelectedAgentArtifacts(plan.repository.root, plan.configuration.agents.selectedArtifacts)),
               );
@@ -124,3 +132,92 @@ const reinstallManagedArtifact = async (root: string, artifact: ManagedArtifact)
   await mkdir(dirname(absolutePath), { recursive: true });
   await copyFile(join(packageRoot, asset.sourcePath), absolutePath);
 };
+
+const installManagedArtifact = async (root: string, artifact: ManagedArtifact): Promise<string> => {
+  const absolutePath = join(root, artifact.path);
+  const asset = reinstallAssetsByPath[artifact.path];
+
+  if (asset === undefined) {
+    throw new Error(`Missing bundled install asset for ${artifact.path}.`);
+  }
+
+  const stats = await lstat(absolutePath).catch((error: unknown) => {
+    if (isMissingPathError(error)) {
+      return null;
+    }
+
+    throw error;
+  });
+
+  if (stats !== null) {
+    return `Skipped ${artifact.path}; an existing path is present.`;
+  }
+
+  if (artifact.kind === 'directory') {
+    await mkdir(absolutePath, { recursive: true });
+    await copyFile(join(packageRoot, asset.sourcePath), join(absolutePath, asset.targetFileName ?? '.lotus.json'));
+    return `Installed ${artifact.path}.`;
+  }
+
+  await mkdir(dirname(absolutePath), { recursive: true });
+  await copyFile(join(packageRoot, asset.sourcePath), absolutePath);
+
+  return `Installed ${artifact.path}.`;
+};
+
+const getManagedArtifactsToInstall = (plan: WorkflowPlan): ManagedArtifact[] => {
+  if (plan.mode === WorkflowMode.FreshInstall) {
+    return managedArtifacts;
+  }
+
+  if (plan.mode === WorkflowMode.DetectedUpdate || plan.mode === WorkflowMode.ExplicitUpdate) {
+    return managedArtifacts.filter((artifact) => plan.state.missingManagedPaths.includes(artifact.path));
+  }
+
+  return [];
+};
+
+const getRequiredExcludePatterns = (plan: WorkflowPlan): string[] => {
+  const patterns = ['.local/'];
+
+  if (plan.configuration?.docsMode === DocsMode.LocalOnly) {
+    patterns.push('.docs/');
+  }
+
+  return patterns;
+};
+
+const ensureGitInfoExclude = async (root: string, patterns: string[]): Promise<string[]> => {
+  const excludePath = await resolveGitPath(root, 'info/exclude');
+  const existingContent = await readFile(excludePath, 'utf8').catch((error: unknown) => {
+    if (isMissingPathError(error)) {
+      return '';
+    }
+
+    throw error;
+  });
+  const existingPatterns = new Set(existingContent.split(/\r?\n/));
+  const missingPatterns = patterns.filter((pattern) => !existingPatterns.has(pattern));
+
+  if (missingPatterns.length === 0) {
+    return [];
+  }
+
+  await mkdir(dirname(excludePath), { recursive: true });
+  const separator = existingContent.length > 0 && !existingContent.endsWith('\n') ? '\n' : '';
+
+  await writeFile(excludePath, `${existingContent}${separator}${missingPatterns.join('\n')}\n`);
+
+  return missingPatterns.map((pattern) => `Ensured ${pattern} is listed in .git/info/exclude.`);
+};
+
+const resolveGitPath = async (root: string, gitPath: string): Promise<string> => {
+  const result = await execa('git', ['rev-parse', '--git-path', gitPath], {
+    cwd: root,
+    reject: true,
+  });
+
+  return resolve(root, result.stdout);
+};
+
+const isMissingPathError = (error: unknown): boolean => error instanceof Error && 'code' in error && error.code === 'ENOENT';

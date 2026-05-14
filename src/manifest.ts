@@ -19,6 +19,7 @@ export enum ManagedArtifactKind {
 export enum ManagedArtifactType {
   LocalGuidance = 'local-guidance',
   LocalIssueStore = 'local-issue-store',
+  LocalIssueNoteStore = 'local-issue-note-store',
   LocalReviewStore = 'local-review-store',
   LocalPrNoteStore = 'local-pr-note-store',
   DocsGuidance = 'docs-guidance',
@@ -237,7 +238,7 @@ const rawLotusManifest = {
       path: '.local/issues-notes',
       scope: ManagedArtifactScope.Local,
       kind: ManagedArtifactKind.Directory,
-      artifactType: ManagedArtifactType.LocalIssueStore,
+      artifactType: ManagedArtifactType.LocalIssueNoteStore,
       privacy: ManagedPrivacy.Private,
       contentClass: ManagedContentClass.UserEditable,
       selectedProfiles: [LotusProfile.LocalFirst],

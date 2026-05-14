@@ -64,12 +64,14 @@ The repository also exposes a native plugin manifest in
 `.codex-plugin/plugin.json` if you prefer to install both skill collections
 through Codex.
 
-The CLI exposes both `lotusagents` and `lotus-agents` binaries. The current
-MAX-75 package orchestrates `install`, `update`, `remove`, `doctor`, and
-`validate` commands inside a Git repository. `install` starts a fresh install
-when no Lotus-managed state is present and routes to update when existing state
-is detected. `update` offers the safe actions Update, Remove, and Cancel.
-When Lotus-managed artifacts are damaged, `update` reports a guided repair path
+The CLI exposes both `lotusagents` and `lotus-agents` binaries. It
+orchestrates `install`, `update`, `remove`, `doctor`, and `validate` commands
+inside a Git repository. `install` starts a fresh install when no
+Lotus-managed state is present, creates the base `.local/` and `.docs/`
+managed artifacts, and routes to update when existing state is detected.
+`update` offers the safe actions Update, Remove, and Cancel, filling in missing
+managed artifacts without replacing present user-editable files. When
+Lotus-managed artifacts are damaged, `update` reports a guided repair path
 instead of overwriting files by default; `update --force` refreshes known
 Lotus-managed files and directory metadata from bundled templates, preserving
 existing directory contents, and warns before replacing user-editable managed
@@ -352,6 +354,11 @@ If you do not want to install the skills, you can adopt Lotus manually:
 7. decide whether `.docs/` should be committed or local-only; when in doubt,
    prefer local-only for mature repos and committed for greenfield or
    bootstrap-only repos
+8. optionally create agent entrypoint files that point agents to
+   `.local/AGENTS.md` and `.docs/AGENTS.md`; Codex and OpenCode use
+   `AGENTS.md`, Claude uses `CLAUDE.md`, and Cursor uses
+   `.cursor/rules/lotus.mdc`. The CLI can generate these automatically, and
+   manual adoption can skip them when you invoke the skills directly.
 
 For the Linear-backed variant:
 
