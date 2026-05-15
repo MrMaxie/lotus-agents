@@ -80,7 +80,7 @@ export const resolveSafeManagedPath = async (
       return unresolvedTarget;
     }
 
-    if (index === segments.length - 1 && stats.isSymbolicLink()) {
+    if (stats.isSymbolicLink()) {
       await realpath(logicalCurrent).catch((error: unknown) => {
         if (isMissingPathError(error)) {
           throw new ManagedPathSafetyError(managedPath, inspectedPath, operation, 'is a dangling symbolic link or junction');

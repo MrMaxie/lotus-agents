@@ -416,7 +416,7 @@ describe('CLI e2e: update and validation workflows', () => {
 
       expect(result.exitCode).toBe(1);
       expect(writers.stderr.join('')).toContain('Refusing to write .local/');
-      expect(writers.stderr.join('')).toContain('.local resolves outside the repository. No files were changed.');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
       expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
       await expectPathMissing(cwd, '.docs/AGENTS.md');
       await expectPathMissing(cwd, '.local/workflow.lotus.json');
@@ -445,7 +445,7 @@ describe('CLI e2e: update and validation workflows', () => {
 
       expect(result.exitCode).toBe(1);
       expect(writers.stderr.join('')).toContain('Refusing to write .local/');
-      expect(writers.stderr.join('')).toContain('.local resolves outside the repository. No files were changed.');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
       expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(existingDocsAgents);
       expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
       await expectPathMissing(cwd, '.local/workflow.lotus.json');
@@ -475,12 +475,65 @@ describe('CLI e2e: update and validation workflows', () => {
 
       expect(result.exitCode).toBe(1);
       expect(writers.stderr.join('')).toContain('Refusing to write .local/');
-      expect(writers.stderr.join('')).toContain('.local resolves outside the repository. No files were changed.');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
       expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(damagedDocsAgents);
       expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
     } finally {
       await cleanupTempDirectory(cwd);
       await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks install when an in-repository managed parent path is a symbolic link or junction', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const actualLocal = join(cwd, 'actual-local');
+
+    try {
+      await createFile(actualLocal, 'AGENTS.md', '# Keep me\n');
+      await createDirectoryLink(cwd, '.local', actualLocal);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(actualLocal, 'AGENTS.md')).toBe('# Keep me\n');
+      await expectPathMissing(actualLocal, 'workflow.lotus.json');
+      await expectPathMissing(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks update when an in-repository managed parent path is a symbolic link or junction', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const actualLocal = join(cwd, 'actual-local');
+
+    try {
+      await createManagedArtifact(cwd, managedArtifact('.docs/AGENTS.md'));
+      await createFile(actualLocal, 'AGENTS.md', '# Keep me\n');
+      await createDirectoryLink(cwd, '.local', actualLocal);
+
+      const existingDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(actualLocal, 'AGENTS.md')).toBe('# Keep me\n');
+      expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(existingDocsAgents);
+      await expectPathMissing(actualLocal, 'workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
     }
   });
 

@@ -164,7 +164,7 @@ describe('CLI e2e: remove workflows', () => {
 
       expect(result.exitCode).toBe(1);
       expect(writers.stderr.join('')).toContain(
-        'Refusing to remove .local/AGENTS.md: .local resolves outside the repository. No files were changed.',
+        'Refusing to remove .local/AGENTS.md: .local is a symbolic link or junction. No files were changed.',
       );
       expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
       await expectPathExists(cwd, '.docs/AGENTS.md');
@@ -193,6 +193,32 @@ describe('CLI e2e: remove workflows', () => {
         'Refusing to remove .docs/AGENTS.md: .docs/AGENTS.md is a symbolic link or junction. No files were changed.',
       );
       expect(await readRepositoryFile(cwd, 'notes.md')).toBe('# Keep me\n');
+      await expectPathExists(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks removal when an in-repository managed parent path is a symbolic link or junction', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const actualDocs = join(cwd, 'actual-docs');
+
+    try {
+      await createFile(actualDocs, 'AGENTS.md', '# Keep me\n');
+      await createDirectoryLink(cwd, '.docs', actualDocs);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        removeScope: RemoveScope.Docs,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to remove .docs/AGENTS.md: .docs is a symbolic link or junction. No files were changed.',
+      );
+      expect(await readRepositoryFile(actualDocs, 'AGENTS.md')).toBe('# Keep me\n');
       await expectPathExists(cwd, '.docs/AGENTS.md');
     } finally {
       await cleanupTempDirectory(cwd);
