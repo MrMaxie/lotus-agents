@@ -52,6 +52,8 @@ describe('CLI e2e: fixture matrix', () => {
 
       expect(result.exitCode).toBe(0);
       expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LinearFirst]);
+      expect(workflowConfig.taskSources).toEqual([]);
+      expect(workflowConfig.sourcePriority).toEqual([]);
       expect(workflowConfig.profileSemantics?.linearFirst.localCompatibilityStores).toBe('not-installed');
       expect(workflowConfig.connectorReadiness?.linear.whenUnavailable).toContain('ask the human to connect Linear');
       await expectPathExists(cwd, '.local/AGENTS.md');

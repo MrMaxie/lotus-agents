@@ -91,7 +91,7 @@ export const createManagedArtifact = async (
           createWorkflowConfig({
             metadata: metadata as ManagedArtifact['metadata'],
             selectedProfiles: metadata.selectedProfiles as ManagedArtifact['metadata']['selectedProfiles'],
-            taskSources: normalizeTaskSources([], {}, []),
+            taskSources: normalizeTaskSources(metadata.selectedProfiles as ManagedArtifact['metadata']['selectedProfiles'], [], {}, []),
           }),
         ),
       );

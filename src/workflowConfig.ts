@@ -225,6 +225,7 @@ const connectorReadiness = {
 };
 
 export const normalizeTaskSources = (
+  selectedProfiles: LotusProfile[],
   remoteSources: TaskSource[] | undefined,
   modes: Partial<Record<TaskSource, SourceOfTruthMode>> | undefined,
   writeEnabledSources: TaskSource[] | undefined,
@@ -233,7 +234,9 @@ export const normalizeTaskSources = (
     .map((source) => taskSourceSchema.parse(source))
     .filter((source) => remoteTaskSources.includes(source as (typeof remoteTaskSources)[number]));
   const writableSources = new Set((writeEnabledSources ?? []).map((source) => taskSourceSchema.parse(source)));
-  const sources = [...localTaskSources, ...uniqueRemoteSources];
+  const selectedProfileSet = new Set(selectedProfiles);
+  const localSources = selectedProfileSet.has(LotusProfile.LocalFirst) ? [...localTaskSources] : [];
+  const sources = [...localSources, ...uniqueRemoteSources];
 
   return sources.map((source, index) => {
     const isRemote = remoteTaskSources.includes(source as (typeof remoteTaskSources)[number]);

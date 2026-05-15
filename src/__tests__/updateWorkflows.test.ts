@@ -5,7 +5,7 @@ import { ProjectCommand, projectCommandSchema } from '../commands';
 import { LotusProfile, lotusArtifactContentVersion, managedArtifacts } from '../manifest';
 import { runCli } from '../program';
 import { WorkflowAction } from '../types';
-import { workflowConfigSchema } from '../workflowConfig';
+import { TaskSource, workflowConfigSchema } from '../workflowConfig';
 import {
   cleanupTempDirectory,
   createDirectoryLink,
@@ -532,6 +532,96 @@ describe('CLI e2e: update and validation workflows', () => {
       expect(await readRepositoryFile(actualLocal, 'AGENTS.md')).toBe('# Keep me\n');
       expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(existingDocsAgents);
       await expectPathMissing(actualLocal, 'workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('updates local-first repositories to linear-first by removing stale local stores and refreshing local guidance', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedProfiles: [LotusProfile.LocalFirst],
+        ...createWriters().context,
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        selectedProfiles: [LotusProfile.LinearFirst],
+        selectedTaskSources: [TaskSource.LinearIssuesConnector],
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const workflowConfig = workflowConfigSchema.parse(JSON.parse(await readRepositoryFile(cwd, '.local/workflow.lotus.json')));
+      const localAgents = await readRepositoryFile(cwd, '.local/AGENTS.md');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Removed .local/issues because it is not selected by the current Lotus profiles.');
+      expect(output).toContain('Removed .local/reviews because it is not selected by the current Lotus profiles.');
+      expect(output).toContain('Removed .local/pr-notes because it is not selected by the current Lotus profiles.');
+      expect(output).toContain('Refreshed .local/AGENTS.md for the selected Lotus profiles.');
+      expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LinearFirst]);
+      expect(workflowConfig.taskSources.map((source) => source.source)).toEqual([TaskSource.LinearIssuesConnector]);
+      expect(workflowConfig.sourcePriority).toEqual([TaskSource.LinearIssuesConnector]);
+      expect(localAgents).toContain('Set these keys before Linear-backed intake work starts');
+      expect(localAgents).not.toContain('issue inputs: `.local/issues/<issue-id>.md`');
+      await expectPathMissing(cwd, '.local/issues/.lotus.json');
+      await expectPathMissing(cwd, '.local/reviews/.lotus.json');
+      await expectPathMissing(cwd, '.local/pr-notes/.lotus.json');
+
+      const validateWriters = createWriters();
+      const validateResult = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...validateWriters.context,
+      });
+
+      expect(validateResult.exitCode).toBe(0);
+      expect(validateWriters.stdout.join('')).toContain('State: valid (managed-artifacts-valid)');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('updates linear-first repositories back to local-first by restoring local stores and local guidance', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedProfiles: [LotusProfile.LinearFirst],
+        selectedTaskSources: [TaskSource.LinearIssuesConnector],
+        ...createWriters().context,
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        selectedProfiles: [LotusProfile.LocalFirst],
+        ...writers.context,
+      });
+
+      const workflowConfig = workflowConfigSchema.parse(JSON.parse(await readRepositoryFile(cwd, '.local/workflow.lotus.json')));
+      const localAgents = await readRepositoryFile(cwd, '.local/AGENTS.md');
+
+      expect(result.exitCode).toBe(0);
+      expect(writers.stdout.join('')).toContain('Refreshed .local/AGENTS.md for the selected Lotus profiles.');
+      expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LocalFirst]);
+      expect(workflowConfig.taskSources.map((source) => source.source)).toEqual([
+        TaskSource.LocalNotes,
+        TaskSource.LocalFollowUps,
+        TaskSource.LocalReviews,
+        TaskSource.LocalFindings,
+      ]);
+      expect(localAgents).toContain('issue inputs: `.local/issues/<issue-id>.md`');
+      await expectPathExists(cwd, '.local/issues/.lotus.json');
+      await expectPathExists(cwd, '.local/reviews/.lotus.json');
+      await expectPathExists(cwd, '.local/pr-notes/.lotus.json');
     } finally {
       await cleanupTempDirectory(cwd);
     }

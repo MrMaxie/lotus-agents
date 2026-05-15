@@ -75,7 +75,6 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
                 ],
                 'write',
               );
-
               for (const managedPath of getManagedPathsToPrune(plan)) {
                 await removeManagedPath(plan.repository.root, managedPath);
                 appliedChanges.push(`Removed ${managedPath} because it is not selected by the current Lotus profiles.`);
@@ -109,7 +108,6 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
                 await writeWorkflowConfigArtifact(plan.repository.root, plan, safePaths, workflowConfigArtifact);
                 appliedChanges.push(`Updated ${workflowConfigArtifact.path}.`);
               }
-
               appliedChanges.push(...(await ensureGitInfoExclude(plan.repository.root, getRequiredExcludePatterns(plan))));
               appliedChanges.push(
                 ...(await writeSelectedAgentArtifacts(plan.repository.root, plan.configuration.agents.selectedArtifacts)),
