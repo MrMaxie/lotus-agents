@@ -61,9 +61,9 @@
     "gray-matter": "4.0.3",
     "listr2": "9.0.5",
     "picocolors": "1.1.1",
-    "smol-toml": "1.4.2",
+    "smol-toml": "1.6.1",
     "ts-pattern": "5.9.0",
-    "yaml": "2.8.1",
+    "yaml": "2.9.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
