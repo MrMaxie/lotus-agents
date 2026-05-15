@@ -12,14 +12,16 @@ export class ManagedPathSafetyError extends Error {
   readonly managedPath: string;
   readonly unsafePath: string;
   readonly operation: ManagedPathOperation;
+  readonly reason: string;
 
-  constructor(managedPath: string, unsafePath: string, operation: ManagedPathOperation) {
+  constructor(managedPath: string, unsafePath: string, operation: ManagedPathOperation, reason = 'resolves outside the repository') {
     const action = managedPathOperationVerbs[operation];
-    super(`Refusing to ${action} ${managedPath}: ${unsafePath} resolves outside the repository. No files were changed.`);
+    super(`Refusing to ${action} ${managedPath}: ${unsafePath} ${reason}. No files were changed.`);
     this.name = 'ManagedPathSafetyError';
     this.managedPath = managedPath;
     this.unsafePath = unsafePath;
     this.operation = operation;
+    this.reason = reason;
   }
 }
 
@@ -78,7 +80,24 @@ export const resolveSafeManagedPath = async (
       return unresolvedTarget;
     }
 
-    const resolvedCurrent = await realpath(logicalCurrent);
+    if (index === segments.length - 1 && stats.isSymbolicLink()) {
+      await realpath(logicalCurrent).catch((error: unknown) => {
+        if (isMissingPathError(error)) {
+          throw new ManagedPathSafetyError(managedPath, inspectedPath, operation, 'is a dangling symbolic link or junction');
+        }
+
+        throw error;
+      });
+      throw new ManagedPathSafetyError(managedPath, inspectedPath, operation, 'is a symbolic link or junction');
+    }
+
+    const resolvedCurrent = await realpath(logicalCurrent).catch((error: unknown) => {
+      if (isMissingPathError(error)) {
+        throw new ManagedPathSafetyError(managedPath, inspectedPath, operation, 'is a dangling symbolic link or junction');
+      }
+
+      throw error;
+    });
 
     assertPathInsideRoot(canonicalRoot, resolvedCurrent, managedPath, inspectedPath, operation);
     canonicalCurrent = resolvedCurrent;

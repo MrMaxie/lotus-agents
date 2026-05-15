@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
 import { runCli } from '../program';
@@ -7,6 +8,7 @@ import {
   createDirectory,
   createDirectoryLink,
   createFile,
+  createFileLink,
   createTempDirectory,
   createTempRepository,
   createWriters,
@@ -169,6 +171,31 @@ describe('CLI e2e: remove workflows', () => {
     } finally {
       await cleanupTempDirectory(cwd);
       await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks removal through a final in-repository symbolic link', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, 'notes.md', '# Keep me\n');
+      await createFileLink(cwd, '.docs/AGENTS.md', join(cwd, 'notes.md'));
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        removeScope: RemoveScope.Docs,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to remove .docs/AGENTS.md: .docs/AGENTS.md is a symbolic link or junction. No files were changed.',
+      );
+      expect(await readRepositoryFile(cwd, 'notes.md')).toBe('# Keep me\n');
+      await expectPathExists(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
     }
   });
 });

@@ -171,13 +171,61 @@ describe('CLI e2e: agent artifacts', () => {
 
       expect(result.exitCode).toBe(1);
       expect(writers.stderr.join('')).toContain(
-        'Refusing to write AGENTS.md: AGENTS.md resolves outside the repository. No files were changed.',
+        'Refusing to write AGENTS.md: AGENTS.md is a symbolic link or junction. No files were changed.',
       );
       expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External shared instructions\n');
       await expectPathMissing(cwd, '.local/AGENTS.md');
     } finally {
       await cleanupTempDirectory(cwd);
       await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks managed agent artifact writes through a final in-repository symbolic link', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, 'notes.md', '# Keep me\n');
+      await createFileLink(cwd, 'AGENTS.md', join(cwd, 'notes.md'));
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedAgents: [LotusAgent.Codex],
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to write AGENTS.md: AGENTS.md is a symbolic link or junction. No files were changed.',
+      );
+      expect(await readRepositoryFile(cwd, 'notes.md')).toBe('# Keep me\n');
+      await expectPathMissing(cwd, '.local/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks managed agent artifact writes through a dangling symbolic link with a clear safety error', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFileLink(cwd, 'AGENTS.md', join(cwd, 'missing.md'));
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedAgents: [LotusAgent.Codex],
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to write AGENTS.md: AGENTS.md is a dangling symbolic link or junction. No files were changed.',
+      );
+      await expectPathMissing(cwd, '.local/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
     }
   });
 });
