@@ -52,10 +52,20 @@ describe('CLI e2e: fixture matrix', () => {
 
       expect(result.exitCode).toBe(0);
       expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LinearFirst]);
+      expect(workflowConfig.taskSources).toEqual([]);
+      expect(workflowConfig.sourcePriority).toEqual([]);
+      expect(workflowConfig.profileSemantics?.linearFirst.localCompatibilityStores).toBe('not-installed');
+      expect(workflowConfig.connectorReadiness?.linear.whenUnavailable).toContain('ask the human to connect Linear');
       await expectPathExists(cwd, '.local/AGENTS.md');
-      await expectPathExists(cwd, '.local/issues/.lotus.json');
+      await expectPathExists(cwd, '.local/issues-notes/.lotus.json');
+      await expectPathMissing(cwd, '.local/issues/.lotus.json');
+      await expectPathMissing(cwd, '.local/reviews/.lotus.json');
+      await expectPathMissing(cwd, '.local/pr-notes/.lotus.json');
       await expectPathExists(cwd, '.docs/AGENTS.md');
       await expectPathExists(cwd, '.docs/spec/.lotus.json');
+      expect(writers.stdout.join('')).toContain(
+        'Linear-first operational state: Linear issues, Linear comments; compatibility stores are not-installed',
+      );
 
       const validateWriters = createWriters();
       const validateResult = await runCli(['node', 'lotusagents', 'validate'], {
@@ -110,6 +120,7 @@ describe('CLI e2e: fixture matrix', () => {
         writesAllowed: false,
         detailsPath: '.local/WORKFLOW.md',
       });
+      expect(workflowConfig.connectorReadiness?.linear.whenConfigured).toContain('linear-issues-connector');
     } finally {
       await cleanupTempDirectory(cwd);
     }

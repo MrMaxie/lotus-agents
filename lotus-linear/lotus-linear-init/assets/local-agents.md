@@ -44,21 +44,25 @@ changes the policy for this repository.
 - Linear issues hold active task descriptions and source links
 - Linear comments hold progress, review clones, reviewer reply proposals, and
   PR-note proposals
-- Linear documents and files hold project flow rules, specs, reusable templates,
-  and recurring operational guidance
-- `.local/` holds private configuration and machine-local notes only
+- `.docs/` may hold repository guidance, reusable templates, and committed
+  specs when the repo keeps durable context near the code
+- `.local/` holds private configuration, workflow notes, and machine-local
+  reproduction notes only
 
 ## Working Rules
 
 - treat Linear as the operational source of truth for current work
-- do not store issue status, progress, review state, PR-note proposals, specs,
-  templates, or project rules in local files for this workflow
+- do not store issue status, progress, review state, or PR-note proposals in
+  local files for this workflow
+- do not install or rely on `.local/issues/`, `.local/reviews/`, or
+  `.local/pr-notes/` when this repository selects only `linear-first`
 - use external systems as read-only sources unless the human explicitly
   authorizes the exact external write
 - for remote-sourced tasks, keep exact source IDs and URLs in Linear
 - for local or self-generated tasks, state that no external source applies
-- before writing an owner-addressed proposal, call Linear `_get_profile` and
-  derive the mention from `displayName` as `@<displayName>`
+- before writing an owner-addressed proposal, verify that the current Linear
+  connector session can resolve the needed user context; if it cannot, stop and
+  ask the human to connect Linear or provide the target context
 - keep operational text concise, technical, and in English
 - do not say that the agent is working in an internal workflow
 - if ambiguity blocks execution, ask the human
