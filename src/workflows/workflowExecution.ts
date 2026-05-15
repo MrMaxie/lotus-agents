@@ -81,18 +81,16 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
               }
 
               for (const artifact of managedArtifactsToInstall) {
-                appliedChanges.push(await installManagedArtifact(plan.repository.root, artifact, safePaths, plan.configuration.selectedProfiles));
+                appliedChanges.push(
+                  await installManagedArtifact(plan.repository.root, artifact, safePaths, plan.configuration.selectedProfiles),
+                );
               }
 
               if (shouldRefreshLocalGuidance(plan)) {
                 const localGuidanceArtifact = managedArtifacts.find((artifact) => artifact.path === '.local/AGENTS.md');
 
                 if (localGuidanceArtifact !== undefined) {
-                  const localGuidanceSafePaths = await resolveSafeManagedPaths(
-                    plan.repository.root,
-                    [localGuidanceArtifact.path],
-                    'write',
-                  );
+                  const localGuidanceSafePaths = await resolveSafeManagedPaths(plan.repository.root, [localGuidanceArtifact.path], 'write');
 
                   await reinstallManagedArtifact(
                     plan.repository.root,
