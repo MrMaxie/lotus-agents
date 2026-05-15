@@ -1,6 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { LotusAgent } from '../manifest';
+import { resolveSafeManagedPaths } from '../utils/managedPathSafety';
 import { readAgentArtifactMetadata, renderAgentArtifact } from './artifactContent';
 import { agentArtifactDefinitions } from './artifactDefinitions';
 import { type AgentArtifactSelection, AgentMetadataReadStatus } from './artifactTypes';
@@ -8,9 +9,14 @@ import { formatAgents } from './formatting';
 
 export const writeSelectedAgentArtifacts = async (root: string, selectedArtifacts: AgentArtifactSelection[]) => {
   const appliedChanges: string[] = [];
+  const safePaths = await resolveSafeManagedPaths(
+    root,
+    selectedArtifacts.map((artifact) => artifact.path),
+    'write',
+  );
 
   for (const artifact of selectedArtifacts) {
-    const targetPath = join(root, artifact.path);
+    const targetPath = safePaths.get(artifact.path) ?? join(root, artifact.path);
     const existingMetadata = await readAgentArtifactMetadata(targetPath);
 
     if (existingMetadata.status === AgentMetadataReadStatus.Unmanaged) {
@@ -28,9 +34,14 @@ export const writeSelectedAgentArtifacts = async (root: string, selectedArtifact
 
 export const removeAgentArtifacts = async (root: string, selectedAgents: LotusAgent[] | undefined) => {
   const appliedChanges: string[] = [];
+  const safePaths = await resolveSafeManagedPaths(
+    root,
+    agentArtifactDefinitions.map((definition) => definition.path),
+    'remove',
+  );
 
   for (const definition of agentArtifactDefinitions) {
-    const targetPath = join(root, definition.path);
+    const targetPath = safePaths.get(definition.path) ?? join(root, definition.path);
     const metadata = await readAgentArtifactMetadata(targetPath);
 
     if (metadata.status !== AgentMetadataReadStatus.Managed) {

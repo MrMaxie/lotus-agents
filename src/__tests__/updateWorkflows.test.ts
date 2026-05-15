@@ -8,9 +8,11 @@ import { WorkflowAction } from '../types';
 import { workflowConfigSchema } from '../workflowConfig';
 import {
   cleanupTempDirectory,
+  createDirectoryLink,
   createFile,
   createManagedArtifact,
   createManagedArtifacts,
+  createTempDirectory,
   createTempRepository,
   createWriters,
   expectPathExists,
@@ -395,6 +397,90 @@ describe('CLI e2e: update and validation workflows', () => {
       await expectPathExists(cwd, '.docs/spec/.lotus.json');
     } finally {
       await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks install when a managed parent path resolves outside the repository', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local resolves outside the repository. No files were changed.');
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+      await expectPathMissing(cwd, '.docs/AGENTS.md');
+      await expectPathMissing(cwd, '.local/workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks update when a missing managed artifact would write through an external link', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createManagedArtifact(cwd, managedArtifact('.docs/AGENTS.md'));
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+
+      const existingDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local resolves outside the repository. No files were changed.');
+      expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(existingDocsAgents);
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+      await expectPathMissing(cwd, '.local/workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks forced reinstall when a managed path resolves outside the repository', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(cwd, '.docs/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n');
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+
+      const damagedDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        forceReinstall: true,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local resolves outside the repository. No files were changed.');
+      expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(damagedDocsAgents);
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
     }
   });
 

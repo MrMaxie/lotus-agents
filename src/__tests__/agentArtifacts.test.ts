@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LotusAgent } from '../manifest';
 import { runCli } from '../program';
@@ -5,6 +6,8 @@ import {
   cleanupTempDirectory,
   createDirectory,
   createFile,
+  createFileLink,
+  createTempDirectory,
   createTempRepository,
   createWriters,
   expectPathMissing,
@@ -148,6 +151,33 @@ describe('CLI e2e: agent artifacts', () => {
       expect(sharedAgents).not.toContain('  - opencode');
     } finally {
       await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks managed agent artifact writes through external links', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(externalRoot, 'AGENTS.md', '# External shared instructions\n');
+      await createFileLink(cwd, 'AGENTS.md', join(externalRoot, 'AGENTS.md'));
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedAgents: [LotusAgent.Codex],
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to write AGENTS.md: AGENTS.md resolves outside the repository. No files were changed.',
+      );
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External shared instructions\n');
+      await expectPathMissing(cwd, '.local/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
     }
   });
 });

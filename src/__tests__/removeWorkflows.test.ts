@@ -5,11 +5,14 @@ import { RemoveScope } from '../types';
 import {
   cleanupTempDirectory,
   createDirectory,
+  createDirectoryLink,
   createFile,
+  createTempDirectory,
   createTempRepository,
   createWriters,
   expectPathExists,
   expectPathMissing,
+  readRepositoryFile,
 } from './helpers';
 
 describe('CLI e2e: remove workflows', () => {
@@ -138,6 +141,34 @@ describe('CLI e2e: remove workflows', () => {
       expect(output).not.toContain('Removed .local/AGENTS.md.');
     } finally {
       await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks removal when a managed path resolves outside the repository', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+      await createFile(cwd, '.docs/AGENTS.md', '# Docs guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        removeScope: RemoveScope.All,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to remove .local/AGENTS.md: .local resolves outside the repository. No files were changed.',
+      );
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+      await expectPathExists(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
     }
   });
 });
