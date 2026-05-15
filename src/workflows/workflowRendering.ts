@@ -1,6 +1,6 @@
 import pc from 'picocolors';
 import { formatAgents, formatDetectedAgents } from '../agents';
-import { lotusManifest } from '../manifest';
+import { LotusProfile, lotusManifest } from '../manifest';
 import type { CommandContext } from '../types';
 import { formatTaskSourceSelection } from '../workflowConfig';
 import { formatRemoveScope } from './workflowFormatting';
@@ -44,6 +44,25 @@ export const renderPlanSummary = (plan: WorkflowPlan, context: CommandContext): 
         plan.configuration.taskSources.length > 0 ? plan.configuration.taskSources.map(formatTaskSourceSelection).join('; ') : 'none'
       }\n`,
     );
+    const selectedProfiles = new Set(plan.configuration.selectedProfiles);
+
+    if (selectedProfiles.has(LotusProfile.LinearFirst)) {
+      const linearFirst = plan.configuration.workflowConfig.profileSemantics?.linearFirst;
+      const linearReadiness = plan.configuration.workflowConfig.connectorReadiness?.linear;
+
+      if (linearFirst !== undefined) {
+        context.stdout(`- Linear-first local artifacts: ${linearFirst.privateLocalArtifacts.join(', ')}\n`);
+        context.stdout(`- Linear-first repository guidance: ${linearFirst.durableRepositoryArtifacts.join(', ')}\n`);
+        context.stdout(
+          `- Linear-first operational state: ${linearFirst.linearOperationalArtifacts.join(', ')}; compatibility stores are ${linearFirst.localCompatibilityStores}\n`,
+        );
+      }
+
+      if (linearReadiness !== undefined) {
+        context.stdout(`- Linear connector readiness: ${linearReadiness.whenUnavailable}\n`);
+      }
+    }
+
     context.stdout('- Workflow config: .local/workflow.lotus.json\n');
     context.stdout(`- Detected agents: ${formatDetectedAgents(plan.configuration.agents.detections)}\n`);
     context.stdout(`- Selected agents: ${formatAgents(plan.configuration.agents.selectedAgents)}\n`);

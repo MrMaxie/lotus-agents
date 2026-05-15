@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { enumValues } from './enumValues';
-import { type LotusProfile, lotusArtifactMetadataSchema, lotusProfileSchema } from './manifest';
+import { LotusProfile, lotusArtifactMetadataSchema, lotusProfileSchema } from './manifest';
 
 export const lotusWorkflowConfigSchemaVersion = 1;
 
@@ -85,6 +85,28 @@ export const taskSourceSelectionSchema = z
     }
   });
 
+export const profileSemanticsSchema = z.object({
+  localFirst: z.object({
+    privateOperationalArtifacts: z.array(z.string().min(1)).min(1),
+    durableRepositoryArtifacts: z.array(z.string().min(1)).min(1),
+  }),
+  linearFirst: z.object({
+    privateLocalArtifacts: z.array(z.string().min(1)).min(1),
+    durableRepositoryArtifacts: z.array(z.string().min(1)).min(1),
+    linearOperationalArtifacts: z.array(z.string().min(1)).min(1),
+    localCompatibilityStores: z.literal('not-installed'),
+  }),
+});
+
+export const connectorReadinessSchema = z.object({
+  linear: z.object({
+    requiredForProfiles: z.array(lotusProfileSchema).min(1),
+    recommendedTaskSource: z.literal(TaskSource.LinearIssuesConnector),
+    whenConfigured: z.string().min(1),
+    whenUnavailable: z.string().min(1),
+  }),
+});
+
 export const workflowConfigSchema = z
   .object({
     metadata: lotusArtifactMetadataSchema,
@@ -93,6 +115,8 @@ export const workflowConfigSchema = z
     selectedProfiles: z.array(lotusProfileSchema),
     taskSources: z.array(taskSourceSelectionSchema),
     sourcePriority: z.array(taskSourceSchema),
+    profileSemantics: profileSemanticsSchema.optional(),
+    connectorReadiness: connectorReadinessSchema.optional(),
     conventions: z.object({
       pullRequests: z.object({
         titleFormat: z.string().min(1),
@@ -176,6 +200,30 @@ export const workflowConfigSchema = z
 export type TaskSourceSelection = z.infer<typeof taskSourceSelectionSchema>;
 export type WorkflowConfig = z.infer<typeof workflowConfigSchema>;
 
+const profileSemantics = {
+  localFirst: {
+    privateOperationalArtifacts: ['.local/issues/', '.local/issues-notes/', '.local/reviews/', '.local/pr-notes/'],
+    durableRepositoryArtifacts: ['.docs/AGENTS.md', '.docs/spec/', '.docs/meetings/_draft.md', '.docs/templates/'],
+  },
+  linearFirst: {
+    privateLocalArtifacts: ['.local/AGENTS.md', '.local/WORKFLOW.md', '.local/workflow.lotus.json', '.local/issues-notes/'],
+    durableRepositoryArtifacts: ['.docs/AGENTS.md', '.docs/spec/', '.docs/meetings/_draft.md', '.docs/templates/'],
+    linearOperationalArtifacts: ['Linear issues', 'Linear comments'],
+    localCompatibilityStores: 'not-installed' as const,
+  },
+};
+
+const connectorReadiness = {
+  linear: {
+    requiredForProfiles: [LotusProfile.LinearFirst],
+    recommendedTaskSource: TaskSource.LinearIssuesConnector,
+    whenConfigured:
+      'Select linear-issues-connector when the repository expects Linear issue routing, and allow external writes only for sources marked read-write-source-of-truth or operational-source-of-truth.',
+    whenUnavailable:
+      'If the Linear connector is unavailable, keep using local guidance and private notes only, and ask the human to connect Linear before claiming Linear-backed intake or writes.',
+  },
+};
+
 export const normalizeTaskSources = (
   remoteSources: TaskSource[] | undefined,
   modes: Partial<Record<TaskSource, SourceOfTruthMode>> | undefined,
@@ -215,6 +263,8 @@ export const createWorkflowConfig = (input: {
     selectedProfiles: input.selectedProfiles,
     taskSources: input.taskSources,
     sourcePriority: input.taskSources.map((source) => source.source),
+    profileSemantics,
+    connectorReadiness,
     conventions: {
       pullRequests: {
         titleFormat: '<TASKID>: <short Linear-aligned description>',
@@ -240,7 +290,7 @@ export const createWorkflowConfig = (input: {
       ],
       manualRemoteUpdates: [
         'Update remote sources manually when the configured mode is readonly.',
-        'Ask the human before writing to any source that is not explicitly read/write or operational.',
+        'Ask the human before writing to any source that is not explicitly read-write-source-of-truth or operational-source-of-truth.',
       ],
     },
     privateLocalFiles: {
@@ -259,4 +309,4 @@ export const createWorkflowConfig = (input: {
 export const renderWorkflowConfig = (config: WorkflowConfig): string => `${JSON.stringify(config, null, 2)}\n`;
 
 export const formatTaskSourceSelection = (selection: TaskSourceSelection): string =>
-  `${selection.source} (${selection.mode}${selection.writesAllowed ? ', writes allowed' : ', readonly'})`;
+  `${selection.source} (${selection.mode}${selection.writesAllowed ? ', external writes enabled' : ', external writes disabled'})`;
