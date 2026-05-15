@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { execa } from 'execa';
 import { describe, expect, it } from 'vitest';
 import { runCli } from '../program';
@@ -5,11 +6,15 @@ import { RemoveScope } from '../types';
 import {
   cleanupTempDirectory,
   createDirectory,
+  createDirectoryLink,
   createFile,
+  createFileLink,
+  createTempDirectory,
   createTempRepository,
   createWriters,
   expectPathExists,
   expectPathMissing,
+  readRepositoryFile,
 } from './helpers';
 
 describe('CLI e2e: remove workflows', () => {
@@ -136,6 +141,85 @@ describe('CLI e2e: remove workflows', () => {
       expect(output).toContain('Selected remove scope: .docs artifacts');
       expect(output).toContain('Removed .docs/AGENTS.md.');
       expect(output).not.toContain('Removed .local/AGENTS.md.');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks removal when a managed path resolves outside the repository', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+      await createFile(cwd, '.docs/AGENTS.md', '# Docs guidance\n');
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        removeScope: RemoveScope.All,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to remove .local/AGENTS.md: .local is a symbolic link or junction. No files were changed.',
+      );
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+      await expectPathExists(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks removal through a final in-repository symbolic link', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await createFile(cwd, 'notes.md', '# Keep me\n');
+      await createFileLink(cwd, '.docs/AGENTS.md', join(cwd, 'notes.md'));
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        removeScope: RemoveScope.Docs,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to remove .docs/AGENTS.md: .docs/AGENTS.md is a symbolic link or junction. No files were changed.',
+      );
+      expect(await readRepositoryFile(cwd, 'notes.md')).toBe('# Keep me\n');
+      await expectPathExists(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks removal when an in-repository managed parent path is a symbolic link or junction', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const actualDocs = join(cwd, 'actual-docs');
+
+    try {
+      await createFile(actualDocs, 'AGENTS.md', '# Keep me\n');
+      await createDirectoryLink(cwd, '.docs', actualDocs);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'remove'], {
+        cwd,
+        removeScope: RemoveScope.Docs,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain(
+        'Refusing to remove .docs/AGENTS.md: .docs is a symbolic link or junction. No files were changed.',
+      );
+      expect(await readRepositoryFile(actualDocs, 'AGENTS.md')).toBe('# Keep me\n');
+      await expectPathExists(cwd, '.docs/AGENTS.md');
     } finally {
       await cleanupTempDirectory(cwd);
     }

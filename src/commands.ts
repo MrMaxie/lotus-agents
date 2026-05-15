@@ -3,6 +3,7 @@ import { type ProjectCommand, projectCommandSchema } from './projectCommands';
 import { detectRepository } from './repository';
 import { detectLotusState } from './state';
 import type { CliResult, CommandContext } from './types';
+import { ManagedPathSafetyError } from './utils/managedPathSafety';
 import { applyWorkflowPlan } from './workflows/workflowExecution';
 import { createWorkflowPlan } from './workflows/workflowPlanning';
 import { renderPlanSummary, renderResultSummary } from './workflows/workflowRendering';
@@ -35,8 +36,17 @@ export const runProjectCommand = async (command: ProjectCommand, context: Comman
     return { exitCode: 0 };
   }
 
-  const appliedChanges = await applyWorkflowPlan(plan);
-  renderResultSummary(plan, appliedChanges, context);
+  try {
+    const appliedChanges = await applyWorkflowPlan(plan);
+    renderResultSummary(plan, appliedChanges, context);
+  } catch (error) {
+    if (error instanceof ManagedPathSafetyError) {
+      context.stderr(`${pc.red(error.message)}\n`);
+      return { exitCode: 1 };
+    }
+
+    throw error;
+  }
 
   return { exitCode: 0 };
 };

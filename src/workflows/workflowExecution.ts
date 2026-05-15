@@ -6,6 +6,7 @@ import { Listr } from 'listr2';
 import { removeAgentArtifacts, writeSelectedAgentArtifacts } from '../agents';
 import { LotusProfile, type ManagedArtifact, ManagedArtifactType, managedArtifacts } from '../manifest';
 import { DocsMode } from '../projectCommands';
+import { resolveSafeManagedPaths } from '../utils/managedPathSafety';
 import { createWorkflowConfig, normalizeTaskSources, renderWorkflowConfig } from '../workflowConfig';
 import { WorkflowMode, type WorkflowPlan } from './workflowTypes';
 
@@ -38,8 +39,14 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
               return;
             }
 
+            const safePaths = await resolveSafeManagedPaths(
+              plan.repository.root,
+              (plan.forceReinstallArtifacts ?? []).map((artifact) => artifact.path),
+              'write',
+            );
+
             for (const artifact of plan.forceReinstallArtifacts ?? []) {
-              await reinstallManagedArtifact(plan.repository.root, artifact, plan.state.selectedProfiles);
+              await reinstallManagedArtifact(plan.repository.root, artifact, plan.state.selectedProfiles, safePaths);
               appliedChanges.push(`Reinstalled ${artifact.path}.`);
             }
 
@@ -49,12 +56,31 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
 
           if (plan.mode !== WorkflowMode.Remove) {
             if (plan.repository.root !== null && plan.configuration !== undefined) {
-              for (const artifact of getManagedArtifactsToInstall(plan)) {
-                appliedChanges.push(await installManagedArtifact(plan.repository.root, artifact));
+              const managedArtifactsToInstall = getManagedArtifactsToInstall(plan);
+              const workflowConfigArtifact = getWorkflowConfigArtifact(plan);
+              await resolveSafeManagedPaths(
+                plan.repository.root,
+                plan.configuration.agents.selectedArtifacts.map((artifact) => artifact.path),
+                'write',
+              );
+              const safePaths = await resolveSafeManagedPaths(
+                plan.repository.root,
+                [
+                  ...managedArtifactsToInstall.map((artifact) => artifact.path),
+                  ...(workflowConfigArtifact !== null ? [workflowConfigArtifact.path] : []),
+                ],
+                'write',
+              );
+
+              for (const artifact of managedArtifactsToInstall) {
+                appliedChanges.push(await installManagedArtifact(plan.repository.root, artifact, safePaths));
               }
 
-              await writeWorkflowConfigArtifact(plan.repository.root, plan);
-              appliedChanges.push('Updated .local/workflow.lotus.json.');
+              if (workflowConfigArtifact !== null) {
+                await writeWorkflowConfigArtifact(plan.repository.root, plan, safePaths, workflowConfigArtifact);
+                appliedChanges.push(`Updated ${workflowConfigArtifact.path}.`);
+              }
+
               appliedChanges.push(...(await ensureGitInfoExclude(plan.repository.root, getRequiredExcludePatterns(plan))));
               appliedChanges.push(
                 ...(await writeSelectedAgentArtifacts(plan.repository.root, plan.configuration.agents.selectedArtifacts)),
@@ -78,8 +104,10 @@ export const applyWorkflowPlan = async (plan: WorkflowPlan): Promise<string[]> =
           if (selectedManagedPaths.length === 0) {
             appliedChanges.push('No managed artifacts were present.');
           } else {
+            const safePaths = await resolveSafeManagedPaths(plan.repository.root, selectedManagedPaths, 'remove');
+
             for (const managedPath of selectedManagedPaths) {
-              const absolutePath = join(plan.repository.root, managedPath);
+              const absolutePath = safePaths.get(managedPath) ?? join(plan.repository.root, managedPath);
               const stats = await lstat(absolutePath);
 
               await rm(absolutePath, { force: true, recursive: stats.isDirectory() });
@@ -106,8 +134,9 @@ const reinstallManagedArtifact = async (
   root: string,
   artifact: ManagedArtifact,
   selectedProfiles: LotusProfile[] | null,
+  safePaths: Map<string, string>,
 ): Promise<void> => {
-  const absolutePath = join(root, artifact.path);
+  const absolutePath = safePaths.get(artifact.path) ?? join(root, artifact.path);
   const asset = reinstallAssetsByPath[artifact.path];
 
   if (artifact.metadata.artifactType === ManagedArtifactType.ProjectWorkflowConfig) {
@@ -147,8 +176,8 @@ const reinstallManagedArtifact = async (
   await copyFile(join(packageRoot, asset.sourcePath), absolutePath);
 };
 
-const installManagedArtifact = async (root: string, artifact: ManagedArtifact): Promise<string> => {
-  const absolutePath = join(root, artifact.path);
+const installManagedArtifact = async (root: string, artifact: ManagedArtifact, safePaths: Map<string, string>): Promise<string> => {
+  const absolutePath = safePaths.get(artifact.path) ?? join(root, artifact.path);
   const asset = reinstallAssetsByPath[artifact.path];
 
   if (asset === undefined) {
@@ -221,21 +250,36 @@ const filterArtifactsBySelectedProfiles = (artifacts: ManagedArtifact[], plan: W
   return artifacts.filter((artifact) => artifact.metadata.selectedProfiles.some((profile) => selectedProfiles.has(profile)));
 };
 
-const writeWorkflowConfigArtifact = async (root: string, plan: WorkflowPlan): Promise<void> => {
-  if (plan.configuration === undefined) {
-    return;
-  }
-
+const getWorkflowConfigArtifact = (plan: WorkflowPlan): ManagedArtifact | null => {
   const artifact = managedArtifacts.find((candidate) => candidate.metadata.artifactType === ManagedArtifactType.ProjectWorkflowConfig);
 
-  if (artifact === undefined || !filterArtifactsBySelectedProfiles([artifact], plan).includes(artifact)) {
+  if (
+    artifact === undefined ||
+    plan.configuration === undefined ||
+    !filterArtifactsBySelectedProfiles([artifact], plan).includes(artifact)
+  ) {
+    return null;
+  }
+
+  return artifact;
+};
+
+const writeWorkflowConfigArtifact = async (
+  root: string,
+  plan: WorkflowPlan,
+  safePaths: Map<string, string>,
+  artifact: ManagedArtifact,
+): Promise<void> => {
+  const configuration = plan.configuration;
+
+  if (configuration === undefined) {
     return;
   }
 
-  const absolutePath = join(root, artifact.path);
+  const absolutePath = safePaths.get(artifact.path) ?? join(root, artifact.path);
 
   await mkdir(dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, renderWorkflowConfig(plan.configuration.workflowConfig));
+  await writeFile(absolutePath, renderWorkflowConfig(configuration.workflowConfig));
 };
 
 const createDefaultWorkflowConfig = (artifact: ManagedArtifact, selectedProfiles: LotusProfile[] | null = null) => ({

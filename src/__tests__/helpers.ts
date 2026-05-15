@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execa } from 'execa';
@@ -42,6 +42,20 @@ export const createFile = async (cwd: string, path: string, content = ''): Promi
 
 export const createDirectory = async (cwd: string, path: string): Promise<void> => {
   await mkdir(join(cwd, path), { recursive: true });
+};
+
+export const createDirectoryLink = async (cwd: string, path: string, targetPath: string): Promise<void> => {
+  const absolutePath = join(cwd, path);
+
+  await mkdir(dirname(absolutePath), { recursive: true });
+  await symlink(targetPath, absolutePath, process.platform === 'win32' ? 'junction' : 'dir');
+};
+
+export const createFileLink = async (cwd: string, path: string, targetPath: string): Promise<void> => {
+  const absolutePath = join(cwd, path);
+
+  await mkdir(dirname(absolutePath), { recursive: true });
+  await symlink(targetPath, absolutePath, process.platform === 'win32' ? 'file' : 'file');
 };
 
 export const readRepositoryFile = async (cwd: string, path: string): Promise<string> => readFile(join(cwd, path), 'utf8');
