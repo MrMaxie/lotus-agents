@@ -5,12 +5,14 @@ import { ProjectCommand, projectCommandSchema } from '../commands';
 import { LotusProfile, lotusArtifactContentVersion, managedArtifacts } from '../manifest';
 import { runCli } from '../program';
 import { WorkflowAction } from '../types';
-import { workflowConfigSchema } from '../workflowConfig';
+import { TaskSource, workflowConfigSchema } from '../workflowConfig';
 import {
   cleanupTempDirectory,
+  createDirectoryLink,
   createFile,
   createManagedArtifact,
   createManagedArtifacts,
+  createTempDirectory,
   createTempRepository,
   createWriters,
   expectPathExists,
@@ -393,6 +395,233 @@ describe('CLI e2e: update and validation workflows', () => {
       expect(exclude).not.toContain('.docs/');
       await expectPathExists(cwd, '.local/issues/.lotus.json');
       await expectPathExists(cwd, '.docs/spec/.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks install when a managed parent path resolves outside the repository', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+      await expectPathMissing(cwd, '.docs/AGENTS.md');
+      await expectPathMissing(cwd, '.local/workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks update when a missing managed artifact would write through an external link', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createManagedArtifact(cwd, managedArtifact('.docs/AGENTS.md'));
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+
+      const existingDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(existingDocsAgents);
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+      await expectPathMissing(cwd, '.local/workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks forced reinstall when a managed path resolves outside the repository', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const externalRoot = await createTempDirectory(`${task.id}-external`);
+
+    try {
+      await createFile(cwd, '.docs/AGENTS.md', '---\nlotus: [\n---\n# Broken metadata\n');
+      await createFile(externalRoot, 'AGENTS.md', '# External local guidance\n');
+      await createDirectoryLink(cwd, '.local', externalRoot);
+
+      const damagedDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        forceReinstall: true,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(damagedDocsAgents);
+      expect(await readRepositoryFile(externalRoot, 'AGENTS.md')).toBe('# External local guidance\n');
+    } finally {
+      await cleanupTempDirectory(cwd);
+      await cleanupTempDirectory(externalRoot);
+    }
+  });
+
+  it('blocks install when an in-repository managed parent path is a symbolic link or junction', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const actualLocal = join(cwd, 'actual-local');
+
+    try {
+      await createFile(actualLocal, 'AGENTS.md', '# Keep me\n');
+      await createDirectoryLink(cwd, '.local', actualLocal);
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(actualLocal, 'AGENTS.md')).toBe('# Keep me\n');
+      await expectPathMissing(actualLocal, 'workflow.lotus.json');
+      await expectPathMissing(cwd, '.docs/AGENTS.md');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('blocks update when an in-repository managed parent path is a symbolic link or junction', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+    const actualLocal = join(cwd, 'actual-local');
+
+    try {
+      await createManagedArtifact(cwd, managedArtifact('.docs/AGENTS.md'));
+      await createFile(actualLocal, 'AGENTS.md', '# Keep me\n');
+      await createDirectoryLink(cwd, '.local', actualLocal);
+
+      const existingDocsAgents = await readRepositoryFile(cwd, '.docs/AGENTS.md');
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        ...writers.context,
+      });
+
+      expect(result.exitCode).toBe(1);
+      expect(writers.stderr.join('')).toContain('Refusing to write .local/');
+      expect(writers.stderr.join('')).toContain('.local is a symbolic link or junction. No files were changed.');
+      expect(await readRepositoryFile(actualLocal, 'AGENTS.md')).toBe('# Keep me\n');
+      expect(await readRepositoryFile(cwd, '.docs/AGENTS.md')).toBe(existingDocsAgents);
+      await expectPathMissing(actualLocal, 'workflow.lotus.json');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('updates local-first repositories to linear-first by removing stale local stores and refreshing local guidance', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedProfiles: [LotusProfile.LocalFirst],
+        ...createWriters().context,
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        selectedProfiles: [LotusProfile.LinearFirst],
+        selectedTaskSources: [TaskSource.LinearIssuesConnector],
+        ...writers.context,
+      });
+
+      const output = writers.stdout.join('');
+      const workflowConfig = workflowConfigSchema.parse(JSON.parse(await readRepositoryFile(cwd, '.local/workflow.lotus.json')));
+      const localAgents = await readRepositoryFile(cwd, '.local/AGENTS.md');
+
+      expect(result.exitCode).toBe(0);
+      expect(output).toContain('Removed .local/issues because it is not selected by the current Lotus profiles.');
+      expect(output).toContain('Removed .local/reviews because it is not selected by the current Lotus profiles.');
+      expect(output).toContain('Removed .local/pr-notes because it is not selected by the current Lotus profiles.');
+      expect(output).toContain('Refreshed .local/AGENTS.md for the selected Lotus profiles.');
+      expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LinearFirst]);
+      expect(workflowConfig.taskSources.map((source) => source.source)).toEqual([TaskSource.LinearIssuesConnector]);
+      expect(workflowConfig.sourcePriority).toEqual([TaskSource.LinearIssuesConnector]);
+      expect(localAgents).toContain('Set these keys before Linear-backed intake work starts');
+      expect(localAgents).not.toContain('issue inputs: `.local/issues/<issue-id>.md`');
+      await expectPathMissing(cwd, '.local/issues/.lotus.json');
+      await expectPathMissing(cwd, '.local/reviews/.lotus.json');
+      await expectPathMissing(cwd, '.local/pr-notes/.lotus.json');
+
+      const validateWriters = createWriters();
+      const validateResult = await runCli(['node', 'lotusagents', 'validate'], {
+        cwd,
+        ...validateWriters.context,
+      });
+
+      expect(validateResult.exitCode).toBe(0);
+      expect(validateWriters.stdout.join('')).toContain('State: valid (managed-artifacts-valid)');
+    } finally {
+      await cleanupTempDirectory(cwd);
+    }
+  });
+
+  it('updates linear-first repositories back to local-first by restoring local stores and local guidance', async ({ task }) => {
+    const cwd = await createTempRepository(task.id);
+
+    try {
+      await runCli(['node', 'lotusagents', 'install'], {
+        cwd,
+        selectedProfiles: [LotusProfile.LinearFirst],
+        selectedTaskSources: [TaskSource.LinearIssuesConnector],
+        ...createWriters().context,
+      });
+
+      const writers = createWriters();
+      const result = await runCli(['node', 'lotusagents', 'update'], {
+        cwd,
+        updateAction: WorkflowAction.Update,
+        selectedProfiles: [LotusProfile.LocalFirst],
+        ...writers.context,
+      });
+
+      const workflowConfig = workflowConfigSchema.parse(JSON.parse(await readRepositoryFile(cwd, '.local/workflow.lotus.json')));
+      const localAgents = await readRepositoryFile(cwd, '.local/AGENTS.md');
+
+      expect(result.exitCode).toBe(0);
+      expect(writers.stdout.join('')).toContain('Refreshed .local/AGENTS.md for the selected Lotus profiles.');
+      expect(workflowConfig.selectedProfiles).toEqual([LotusProfile.LocalFirst]);
+      expect(workflowConfig.taskSources.map((source) => source.source)).toEqual([
+        TaskSource.LocalNotes,
+        TaskSource.LocalFollowUps,
+        TaskSource.LocalReviews,
+        TaskSource.LocalFindings,
+      ]);
+      expect(localAgents).toContain('issue inputs: `.local/issues/<issue-id>.md`');
+      await expectPathExists(cwd, '.local/issues/.lotus.json');
+      await expectPathExists(cwd, '.local/reviews/.lotus.json');
+      await expectPathExists(cwd, '.local/pr-notes/.lotus.json');
     } finally {
       await cleanupTempDirectory(cwd);
     }

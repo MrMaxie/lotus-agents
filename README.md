@@ -82,6 +82,11 @@ Linear-first:
 lotusagents install --profile linear-first --task-source linear-issues-connector --source-mode linear-issues-connector=operational
 ```
 
+`linear-first` keeps only private local guidance, workflow config, and
+reproduction notes in `.local/`. Active issue, review, progress, and PR-note
+state belongs in Linear, and the workflow should not claim Linear-backed intake
+until the Linear connector is actually available.
+
 Combined:
 
 ```bash
@@ -100,10 +105,10 @@ repo/
     AGENTS.md
     WORKFLOW.md
     workflow.lotus.json
-    issues/
     issues-notes/
-    reviews/
-    pr-notes/
+    issues/       # local-first only
+    reviews/      # local-first only
+    pr-notes/     # local-first only
   .docs/
     AGENTS.md
     spec/

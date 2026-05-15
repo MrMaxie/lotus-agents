@@ -30,7 +30,7 @@ export const createInstallationConfiguration = async (
   const selectedProfiles = await resolveSelectedProfiles(context, prefilledProfiles);
   const selectedTaskSources = await resolveSelectedTaskSources(context);
   const taskSourceModes = await resolveTaskSourceModes(context, selectedTaskSources);
-  const taskSources = normalizeTaskSources(selectedTaskSources, taskSourceModes, context.writeEnabledTaskSources);
+  const taskSources = normalizeTaskSources(selectedProfiles, selectedTaskSources, taskSourceModes, context.writeEnabledTaskSources);
   const workflowConfig = createWorkflowConfig({
     metadata: getWorkflowConfigArtifact().metadata,
     selectedProfiles,

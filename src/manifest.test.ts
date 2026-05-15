@@ -48,4 +48,12 @@ describe('manifest', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('keeps local issue, review, and PR-note stores out of the linear-first-only profile', () => {
+    const localFirstOnlyPaths = managedArtifacts
+      .filter((artifact) => artifact.metadata.selectedProfiles.length === 1 && artifact.metadata.selectedProfiles[0] === 'local-first')
+      .map((artifact) => artifact.path);
+
+    expect(localFirstOnlyPaths).toEqual(expect.arrayContaining(['.local/issues', '.local/reviews', '.local/pr-notes']));
+  });
 });

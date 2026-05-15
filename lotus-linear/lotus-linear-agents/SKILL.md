@@ -19,9 +19,11 @@ Use this skill as the entrypoint for the Linear-backed Lotus variant.
 ## Operating Model
 
 - treat Linear as the canonical operational state for active work
-- treat `.local/` as private configuration and machine-local instructions
-- treat configured Linear project resources, documents, files, issues, and
-  comments as durable project context
+- treat `.local/` as private configuration, workflow notes, and reproduction
+  notes only
+- treat `.docs/` as repository guidance when the repo keeps shared specs,
+  templates, or durable instructions near the code
+- treat configured Linear issues and comments as the active operational state
 - read project-specific Linear routing from `.local/AGENTS.md` before using
   Linear: `linear_team`, `linear_project`, `linear_flow_document`,
   `source_policy`, and `external_writes`
@@ -35,9 +37,11 @@ Use this skill as the entrypoint for the Linear-backed Lotus variant.
 
 ## Linear Requirement
 
-The Linear connector is required for this variant. If Linear tools are missing
-or the current user profile cannot be resolved when owner mention is required,
-stop and ask the human to connect Linear or provide the missing target context.
+The Linear connector is required for active Linear-backed intake. If Linear
+tools are missing, or the available connector session cannot resolve the target
+issue/project context needed for the requested action, stop before claiming the
+workflow is ready and ask the human to connect Linear or provide the missing
+target context.
 
 ## Apply, Do Not Narrate
 

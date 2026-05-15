@@ -23,10 +23,12 @@ operational files.
 ## Source And Write Policy
 
 - Linear is the canonical operational store for this workflow
-- Linear project resources, documents, files, issues, and comments are the
-  durable project context for this workflow
-- `.local/` is private configuration and machine-local context, not issue or
-  project-document state
+- Linear issues and comments are the durable operational context for this
+  workflow
+- `.local/` is private configuration and machine-local context, not issue,
+  review, or PR-note state
+- `.docs/` may still hold repository guidance, specs, and reusable templates
+  when the repo keeps that context near the code
 - external systems are read-only by default
 - if `external_writes` is `disallowed-by-default`, do not write to Jira,
   GitHub, Azure DevOps, Confluence, or other remote systems without explicit
@@ -40,18 +42,18 @@ operational files.
 
 ## Linear Profile Requirement
 
-Before publishing any owner-addressed proposal comment, call Linear
-`_get_profile`. Derive the owner mention from `displayName` as
-`@<displayName>`.
+Before publishing any owner-addressed proposal comment, verify that the
+available Linear connector session can resolve the current user or target owner
+context needed for the mention.
 
 Stop before publishing if:
 
 - Linear tools are unavailable
-- `_get_profile` fails
-- `displayName` is missing or empty
+- the connector cannot resolve the required user context
 - the target Linear issue cannot be resolved
 
-Do not guess, cache, or hardcode the mention.
+Do not guess, cache, or hardcode the mention. Ask the human to connect Linear
+or provide the missing target context instead.
 
 ## Apply
 

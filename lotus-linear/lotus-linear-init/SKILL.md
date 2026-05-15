@@ -25,11 +25,13 @@ Use this skill when a repository needs the Linear-backed Lotus rules.
 - do not create Linear issues, Linear documents, or external tickets during init
 - keep active issue, progress, review, PR-note, and durable project state in
   Linear for this variant
-- keep `.docs/AGENTS.md` and reusable `.docs` templates available as durable
-  agent guidance; they are not the operational Linear work state
-- local Lotus directories may exist only as private execution notes or
-  compatibility stores; they are not the operational source when
-  `.local/workflow.lotus.json` selects `linear-first`
+- keep `.docs/AGENTS.md`, `.docs/spec/`, and reusable `.docs` templates
+  available as repository guidance; they are not the operational Linear work
+  state
+- install only private local execution artifacts for `linear-first`
+- do not install `.local/issues/`, `.local/reviews/`, or `.local/pr-notes/`
+  for this variant; keep only private configuration and reproduction notes in
+  `.local/`
 
 ## Required Local Configuration
 
@@ -52,6 +54,9 @@ external_writes: disallowed-by-default
 - keep all generated project and operational text in English
 - use Linear as the operational and durable project source of truth after
   initialization
+- if the Linear connector or target project context is not ready, initialize
+  only the local guidance/configuration contract and tell the human what still
+  needs to be connected before Linear-backed intake can start
 - write to external systems only after explicit human authorization for that
   target and action
 
